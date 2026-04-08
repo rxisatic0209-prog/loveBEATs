@@ -1,4 +1,4 @@
-# PulseAgent MVP
+# LoveBeats MVP
 
 一个从零启动的后端骨架，用来验证“恋爱陪伴聊天 + persona + 按需心率 tool”这条主链路。
 
