@@ -1,16 +1,37 @@
 import unittest
 from pathlib import Path
+from unittest.mock import AsyncMock, patch
 
 from fastapi.testclient import TestClient
 
+from app.config import settings
 from app.db import reset_db
+from app.agent.llm import LLMCallError
 from app.main import app
 
 
 class PulseAgentAPITest(unittest.TestCase):
     def setUp(self) -> None:
+        self._original_llm_settings = (
+            settings.llm_api_key,
+            settings.llm_base_url,
+            settings.llm_model_id,
+            settings.llm_timeout,
+        )
+        settings.llm_api_key = None
+        settings.llm_base_url = None
+        settings.llm_model_id = None
+        settings.llm_timeout = 60
         reset_db()
         self.client = TestClient(app)
+
+    def tearDown(self) -> None:
+        (
+            settings.llm_api_key,
+            settings.llm_base_url,
+            settings.llm_model_id,
+            settings.llm_timeout,
+        ) = self._original_llm_settings
 
     def test_agent_scaffold_endpoint(self) -> None:
         response = self.client.get("/v1/agent/scaffold")
@@ -18,6 +39,21 @@ class PulseAgentAPITest(unittest.TestCase):
         data = response.json()
         self.assertIn("tool_registry", data)
         self.assertEqual(data["tool_registry"][0]["name"], "get_heart_rate")
+
+    def test_heart_rate_tool_provider_defaults_to_local_cache(self) -> None:
+        response = self.client.get("/v1/tools/heart-rate/provider")
+        self.assertEqual(response.status_code, 200)
+        data = response.json()
+        self.assertEqual(data["provider"], "local_cache")
+        self.assertEqual(data["transport"], "internal")
+        self.assertEqual(data["host_platform"], "backend")
+        self.assertTrue(data["ready"])
+
+    def test_chat_page_exists(self) -> None:
+        response = self.client.get("/chat")
+        self.assertEqual(response.status_code, 200)
+        self.assertIn("text/html", response.headers["content-type"])
+        self.assertIn("PulseAgent Chat", response.text)
 
     def test_turn_preview_does_not_persist_messages(self) -> None:
         preview_response = self.client.post(
@@ -55,6 +91,8 @@ class PulseAgentAPITest(unittest.TestCase):
         self.assertEqual(data["prompt_messages"][0]["role"], "system")
         self.assertEqual(data["llm"]["source"], "mock-local")
         self.assertTrue(data["warnings"])
+        self.assertIn("括号、旁白、动作、神态、环境、沉默、心理活动，都视为场景信息", data["runtime"]["system_prompt"])
+        self.assertIn("可以自然加入动作、肢体反应、表情、视线、停顿、语气变化、环境细节", data["runtime"]["system_prompt"])
 
     def test_smoke_script_exists(self) -> None:
         script_path = Path("/Users/rxie/Desktop/loveBEATs/backend/scripts/smoke_test.py")
@@ -64,8 +102,9 @@ class PulseAgentAPITest(unittest.TestCase):
         script_path = Path("/Users/rxie/Desktop/loveBEATs/backend/scripts/heart_rate_simulator.py")
         self.assertTrue(script_path.exists())
 
-    def test_ios_healthkit_skeleton_exists(self) -> None:
-        base = Path("/Users/rxie/Desktop/loveBEATs/ios/PulseAgentIOS")
+    def test_ios_project_exists(self) -> None:
+        base = Path("/Users/rxie/Desktop/loveBEATs/ios/PulseAgent/PulseAgent")
+        self.assertTrue(Path("/Users/rxie/Desktop/loveBEATs/ios/PulseAgent/PulseAgent.xcodeproj/project.pbxproj").exists())
         self.assertTrue((base / "PulseAgentApp.swift").exists())
         self.assertTrue((base / "Services/HealthKitHeartRateService.swift").exists())
         self.assertTrue((base / "ViewModels/HeartRateSyncViewModel.swift").exists())
@@ -92,9 +131,331 @@ class PulseAgentAPITest(unittest.TestCase):
         data = response.json()
         self.assertIn("阿昼", data["compiled_prompt"])
         self.assertIn("宝宝", data["compiled_prompt"])
+        self.assertIn("表演要求：始终留在角色里说话", data["compiled_prompt"])
         self.assertEqual(data["taboos"], ["不说教", "不冷暴力", "不训斥", "不做医学判断"])
         self.assertEqual(data["lexicon"], ["笨蛋", "乖一点"])
         self.assertEqual(data["expression_level"], "偏高")
+
+    def test_persona_template_crud(self) -> None:
+        create_response = self.client.post(
+            "/v1/personas",
+            json={
+                "name": "年上恋人",
+                "description": "稳定照顾型",
+                "persona_text": "像年上恋人一样聊天，温柔克制。",
+                "persona_profile": {
+                    "display_name": "阿昼",
+                    "user_nickname": "宝宝",
+                },
+            },
+        )
+        self.assertEqual(create_response.status_code, 200)
+        created = create_response.json()
+        self.assertTrue(created["persona_id"].startswith("persona_"))
+
+        list_response = self.client.get("/v1/personas")
+        self.assertEqual(list_response.status_code, 200)
+        self.assertEqual(len(list_response.json()), 1)
+
+        update_response = self.client.put(
+            f"/v1/personas/{created['persona_id']}",
+            json={"name": "年上恋人Plus", "persona_text": "更自然一点。"},
+        )
+        self.assertEqual(update_response.status_code, 200)
+        self.assertEqual(update_response.json()["name"], "年上恋人Plus")
+
+        delete_response = self.client.delete(f"/v1/personas/{created['persona_id']}")
+        self.assertEqual(delete_response.status_code, 200)
+        self.assertEqual(delete_response.json()["ok"], True)
+
+    def test_agent_profile_crud_and_runtime_binding(self) -> None:
+        persona_response = self.client.post(
+            "/v1/personas",
+            json={
+                "name": "测试 persona",
+                "persona_text": "像恋人一样聊天，安静一点。",
+            },
+        )
+        persona_id = persona_response.json()["persona_id"]
+
+        agent_response = self.client.post(
+            "/v1/agents",
+            json={
+                "name": "无心率 agent",
+                "description": "禁用心率工具",
+                "system_preamble": "优先用更日常、更轻的关系表达。",
+                "tool_call_limit": 0,
+                "heart_rate_enabled": False,
+                "heart_rate_max_call_per_turn": 0,
+                "allow_stale_heart_rate": False,
+            },
+        )
+        self.assertEqual(agent_response.status_code, 200)
+        agent = agent_response.json()
+        self.assertTrue(agent["agent_id"].startswith("agent_"))
+
+        preview_response = self.client.post(
+            "/v1/turns/preview",
+            json={
+                "session_id": "s_agent_preview",
+                "profile_id": "p_agent_preview",
+                "persona_id": persona_id,
+                "agent_id": agent["agent_id"],
+                "user_message": "你会不会想我？",
+            },
+        )
+        self.assertEqual(preview_response.status_code, 200)
+        preview = preview_response.json()
+        self.assertEqual(preview["agent"]["agent_id"], agent["agent_id"])
+        self.assertEqual(preview["policy"]["tool_call_limit"], 0)
+        self.assertFalse(preview["policy"]["heart_rate"]["enabled"])
+        self.assertEqual(preview["tools"], [])
+        self.assertIn("更日常、更轻的关系表达", preview["system_prompt"])
+
+    def test_session_can_bind_persona_and_agent(self) -> None:
+        persona_response = self.client.post(
+            "/v1/personas",
+            json={
+                "name": "夜间陪伴",
+                "persona_text": "像恋人一样聊天，夜里更安静一点。",
+            },
+        )
+        agent_response = self.client.post(
+            "/v1/agents",
+            json={
+                "name": "轻回应 agent",
+                "tool_call_limit": 0,
+                "heart_rate_enabled": False,
+                "heart_rate_max_call_per_turn": 0,
+            },
+        )
+
+        create_response = self.client.post(
+            "/v1/sessions",
+            json={
+                "session_id": "s_bound",
+                "profile_id": "p_bound",
+                "persona_id": persona_response.json()["persona_id"],
+                "agent_id": agent_response.json()["agent_id"],
+            },
+        )
+        self.assertEqual(create_response.status_code, 200)
+        session = create_response.json()
+        self.assertEqual(session["persona_id"], persona_response.json()["persona_id"])
+        self.assertEqual(session["agent_id"], agent_response.json()["agent_id"])
+        self.assertEqual(session["persona_text"], "像恋人一样聊天，夜里更安静一点。")
+
+    def test_role_lifecycle_uses_role_id_as_memory_boundary(self) -> None:
+        create_response = self.client.post(
+            "/v1/roles",
+            json={
+                "role_id": "role_001",
+                "title": "深夜恋人",
+                "persona_text": "像恋人一样聊天，深夜更轻一点。",
+            },
+        )
+        self.assertEqual(create_response.status_code, 200)
+        role = create_response.json()
+        self.assertEqual(role["role_id"], "role_001")
+        self.assertEqual(role["persona_text"], "像恋人一样聊天，深夜更轻一点。")
+
+        chat_response = self.client.post(
+            "/v1/chat/send",
+            json={
+                "role_id": "role_001",
+                "user_message": "你醒着吗？",
+            },
+        )
+        self.assertEqual(chat_response.status_code, 200)
+        data = chat_response.json()
+        self.assertEqual(data["role_id"], "role_001")
+        self.assertEqual(data["session_id"], "role_001")
+
+        history_response = self.client.get("/v1/roles/role_001/history")
+        self.assertEqual(history_response.status_code, 200)
+        history = history_response.json()
+        self.assertEqual(history["role"]["role_id"], "role_001")
+        self.assertEqual(len(history["messages"]), 2)
+
+    def test_roles_list_returns_latest_first(self) -> None:
+        first = self.client.post(
+            "/v1/roles",
+            json={
+                "role_id": "role_list_001",
+                "persona_text": "像恋人一样聊天，温柔一点。",
+            },
+        )
+        self.assertEqual(first.status_code, 200)
+        second = self.client.post(
+            "/v1/roles",
+            json={
+                "role_id": "role_list_002",
+                "persona_text": "像恋人一样聊天，安静一点。",
+            },
+        )
+        self.assertEqual(second.status_code, 200)
+
+        response = self.client.get("/v1/roles")
+        self.assertEqual(response.status_code, 200)
+        roles = response.json()
+        self.assertEqual(len(roles), 2)
+        self.assertEqual(roles[0]["role_id"], "role_list_002")
+        self.assertEqual(roles[1]["role_id"], "role_list_001")
+
+    def test_role_card_creation_persists_structured_fields(self) -> None:
+        create_response = self.client.post(
+            "/v1/roles",
+            json={
+                "role_card": {
+                    "name": "阿昼",
+                    "user_nickname": "宝宝",
+                    "relationship_setting": "你是用户的年上恋人，稳定克制。",
+                    "story_background": "你们已经相处很久，关系亲密自然。",
+                    "trait_profile": "温柔、稳定、慢热，会先理解情绪。",
+                    "attachment_style": "安全型，亲近但不控制。",
+                    "processing_style": "先接住情绪，再整理表达，不放大冲突。",
+                    "key_experiences": "长期承担照顾者角色，对逞强和疲惫更敏感。",
+                    "core_motivations": "想维持稳定亲密关系，让对方有被接住的感觉。",
+                    "response_style": "轻柔、自然、不要说教；先接住情绪，再自然延展；中等偏主动，会追问一点点。",
+                    "response_boundaries": "不做医生判断，不制造愧疚，不说教，不训斥。",
+                    "keywords": ["笨蛋", "乖一点"],
+                },
+            },
+        )
+        self.assertEqual(create_response.status_code, 200)
+        role = create_response.json()
+        self.assertTrue(role["role_id"].startswith("role_"))
+        self.assertEqual(role["role_card"]["name"], "阿昼")
+        self.assertEqual(role["role_card"]["trait_profile"], "温柔、稳定、慢热，会先理解情绪。")
+        self.assertEqual(
+            role["role_card"]["response_style"],
+            "轻柔、自然、不要说教；先接住情绪，再自然延展；中等偏主动，会追问一点点。",
+        )
+        self.assertEqual(
+            role["role_card"]["response_boundaries"],
+            "不做医生判断，不制造愧疚，不说教，不训斥。",
+        )
+        self.assertEqual(role["role_card"]["keywords"], ["笨蛋", "乖一点"])
+        self.assertIn("故事背景", role["persona_text"])
+        self.assertIn("回答风格", role["persona_text"])
+        self.assertIn("回答边界", role["persona_text"])
+
+        get_response = self.client.get(f"/v1/roles/{role['role_id']}")
+        self.assertEqual(get_response.status_code, 200)
+        loaded = get_response.json()
+        self.assertEqual(loaded["role_card"]["relationship_setting"], "你是用户的年上恋人，稳定克制。")
+
+    def test_role_card_creation_with_only_name_is_allowed(self) -> None:
+        create_response = self.client.post(
+            "/v1/roles",
+            json={
+                "role_card": {
+                    "name": "阿昼",
+                },
+            },
+        )
+        self.assertEqual(create_response.status_code, 200)
+        role = create_response.json()
+        self.assertEqual(role["role_card"]["name"], "阿昼")
+        self.assertIsNone(role["role_card"]["relationship_setting"])
+        self.assertIsNone(role["role_card"]["story_background"])
+        self.assertIsNone(role["role_card"]["trait_profile"])
+        self.assertIn("角色名是阿昼", role["persona_text"])
+
+    def test_chat_send_returns_readable_llm_error(self) -> None:
+        role_response = self.client.post(
+            "/v1/roles",
+            json={"role_card": {"name": "阿昼"}},
+        )
+        self.assertEqual(role_response.status_code, 200)
+        role_id = role_response.json()["role_id"]
+
+        with patch(
+            "app.main.handle_chat",
+            new=AsyncMock(side_effect=LLMCallError("模型调用失败：当前 LLM_MODEL_ID 不可用，或当前 key 没有权限使用它。请检查 backend/.env。", status_code=400)),
+        ):
+            response = self.client.post(
+                "/v1/chat/send",
+                json={"role_id": role_id, "user_message": "我真的很讨厌你"},
+            )
+
+        self.assertEqual(response.status_code, 400)
+        self.assertEqual(
+            response.json()["detail"],
+            "模型调用失败：当前 LLM_MODEL_ID 不可用，或当前 key 没有权限使用它。请检查 backend/.env。",
+        )
+
+    def test_role_create_with_app_user_id_still_generates_role_id(self) -> None:
+        create_response = self.client.post(
+            "/v1/roles",
+            json={
+                "app_user_id": "app_user_bridge_owner",
+                "persona_text": "像恋人一样聊天，温柔一点。",
+            },
+        )
+        self.assertEqual(create_response.status_code, 200)
+        role = create_response.json()
+        self.assertTrue(role["role_id"].startswith("role_"))
+        self.assertNotEqual(role["role_id"], "app_user_bridge_owner")
+        self.assertEqual(role["app_user_id"], "app_user_bridge_owner")
+
+    def test_role_heart_rate_history_starts_after_role_creation(self) -> None:
+        self.client.post(
+            "/v1/roles",
+            json={
+                "role_id": "role_hr_001",
+                "persona_text": "像恋人一样聊天，温柔一点。",
+            },
+        )
+        append_response = self.client.post(
+            "/v1/roles/role_hr_001/heart-rate",
+            json={"bpm": 88},
+        )
+        self.assertEqual(append_response.status_code, 200)
+        reading = append_response.json()
+        self.assertEqual(reading["role_id"], "role_hr_001")
+        self.assertEqual(reading["app_user_id"], "local_app_user")
+        self.assertEqual(reading["profile_id"], "local_app_user")
+        self.assertEqual(reading["status"], "fresh")
+
+        latest_response = self.client.get("/v1/roles/role_hr_001/heart-rate/latest")
+        self.assertEqual(latest_response.status_code, 200)
+        self.assertEqual(latest_response.json()["bpm"], 88)
+
+        history_response = self.client.get("/v1/roles/role_hr_001/heart-rate/history")
+        self.assertEqual(history_response.status_code, 200)
+        history = history_response.json()
+        self.assertEqual(len(history), 1)
+        self.assertEqual(history[0]["role_id"], "role_hr_001")
+        self.assertEqual(history[0]["app_user_id"], "local_app_user")
+        self.assertEqual(history[0]["bpm"], 88)
+
+    def test_role_heart_rate_tool_reads_owner_app_user_latest(self) -> None:
+        self.client.post(
+            "/v1/roles",
+            json={
+                "role_id": "role_owner_001",
+                "app_user_id": "app_user_alex",
+                "persona_text": "像恋人一样聊天，温柔一点。",
+            },
+        )
+        self.client.post(
+            "/v1/app-users/app_user_alex/heart-rate/latest",
+            json={"bpm": 91},
+        )
+        chat_response = self.client.post(
+            "/v1/chat/send",
+            json={
+                "role_id": "role_owner_001",
+                "user_message": "我现在是不是有点紧张？",
+            },
+        )
+        self.assertEqual(chat_response.status_code, 200)
+        data = chat_response.json()
+        self.assertTrue(data["tool_used"])
+        self.assertEqual(data["app_user_id"], "app_user_alex")
+        self.assertEqual(data["heart_rate"]["app_user_id"], "app_user_alex")
+        self.assertEqual(data["heart_rate"]["bpm"], 91)
 
     def test_session_lifecycle_and_chat(self) -> None:
         create_response = self.client.post(
@@ -183,6 +544,39 @@ class PulseAgentAPITest(unittest.TestCase):
         self.assertEqual(history["session"]["session_id"], "s_004")
         self.assertEqual(len(history["messages"]), 2)
 
+    def test_updating_persona_clears_session_memory(self) -> None:
+        self.client.post(
+            "/v1/sessions",
+            json={
+                "session_id": "s_reset",
+                "profile_id": "p_reset",
+                "persona_text": "像恋人一样聊天，温柔一点。",
+            },
+        )
+        self.client.post(
+            "/v1/chat/send",
+            json={
+                "session_id": "s_reset",
+                "profile_id": "p_reset",
+                "user_message": "第一段记忆",
+            },
+        )
+
+        update_response = self.client.post(
+            "/v1/sessions",
+            json={
+                "session_id": "s_reset",
+                "profile_id": "p_reset",
+                "persona_text": "你现在是另一张新角色卡，语气更冷静。",
+            },
+        )
+        self.assertEqual(update_response.status_code, 200)
+
+        history_response = self.client.get("/v1/sessions/s_reset/history")
+        self.assertEqual(history_response.status_code, 200)
+        history = history_response.json()
+        self.assertEqual(history["messages"], [])
+
     def test_new_session_requires_persona(self) -> None:
         response = self.client.post(
             "/v1/chat/send",
@@ -193,7 +587,7 @@ class PulseAgentAPITest(unittest.TestCase):
             },
         )
         self.assertEqual(response.status_code, 400)
-        self.assertEqual(response.json()["detail"], "persona_text is required for a new session")
+        self.assertEqual(response.json()["detail"], "persona_text or persona_id or role_card is required for a new role")
 
 
 if __name__ == "__main__":

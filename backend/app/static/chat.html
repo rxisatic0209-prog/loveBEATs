@@ -1,0 +1,1021 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>PulseAgent Chat</title>
+  <style>
+    :root {
+      --bg: #f4efe6;
+      --panel: rgba(255, 251, 246, 0.9);
+      --panel-strong: rgba(255, 248, 240, 0.98);
+      --line: rgba(91, 58, 41, 0.12);
+      --text: #3d2a20;
+      --muted: #7a6254;
+      --accent: #c96f49;
+      --accent-deep: #a24a2c;
+      --user: #fae2d4;
+      --assistant: #fffaf5;
+      --danger: #a13030;
+      --shadow: 0 18px 45px rgba(88, 52, 37, 0.12);
+    }
+
+    * {
+      box-sizing: border-box;
+    }
+
+    body {
+      margin: 0;
+      min-height: 100vh;
+      font-family: "PingFang SC", "Noto Serif SC", serif;
+      color: var(--text);
+      background:
+        radial-gradient(circle at top left, rgba(223, 170, 131, 0.26), transparent 28%),
+        radial-gradient(circle at right 20%, rgba(203, 111, 73, 0.14), transparent 22%),
+        linear-gradient(160deg, #f8f2ea 0%, #efe2d4 100%);
+    }
+
+    .shell {
+      display: grid;
+      grid-template-columns: 360px minmax(0, 1fr);
+      gap: 24px;
+      min-height: 100vh;
+      padding: 24px;
+    }
+
+    .panel {
+      background: var(--panel);
+      border: 1px solid var(--line);
+      border-radius: 24px;
+      box-shadow: var(--shadow);
+      backdrop-filter: blur(12px);
+    }
+
+    .sidebar {
+      display: flex;
+      flex-direction: column;
+      padding: 22px 20px;
+      gap: 18px;
+    }
+
+    .brand {
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+    }
+
+    .eyebrow {
+      font-size: 12px;
+      letter-spacing: 0.18em;
+      text-transform: uppercase;
+      color: var(--accent-deep);
+    }
+
+    h1 {
+      margin: 0;
+      font-size: 28px;
+      line-height: 1;
+    }
+
+    .subtle {
+      color: var(--muted);
+      font-size: 14px;
+      line-height: 1.5;
+    }
+
+    .stack {
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+    }
+
+    .section-title {
+      margin: 8px 0 2px;
+      font-size: 12px;
+      letter-spacing: 0.12em;
+      text-transform: uppercase;
+      color: var(--accent-deep);
+    }
+
+    .field {
+      display: flex;
+      flex-direction: column;
+      gap: 6px;
+    }
+
+    label {
+      font-size: 13px;
+      color: var(--muted);
+    }
+
+    input,
+    select,
+    textarea,
+    button {
+      font: inherit;
+    }
+
+    input,
+    select,
+    textarea {
+      width: 100%;
+      padding: 12px 14px;
+      border-radius: 14px;
+      border: 1px solid rgba(91, 58, 41, 0.14);
+      background: rgba(255, 255, 255, 0.75);
+      color: var(--text);
+      outline: none;
+      transition: border-color 120ms ease, box-shadow 120ms ease, transform 120ms ease;
+    }
+
+    input:focus,
+    select:focus,
+    textarea:focus {
+      border-color: rgba(201, 111, 73, 0.85);
+      box-shadow: 0 0 0 4px rgba(201, 111, 73, 0.12);
+    }
+
+    textarea {
+      resize: vertical;
+      min-height: 92px;
+    }
+
+    .row {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 10px;
+    }
+
+    .actions {
+      display: flex;
+      gap: 10px;
+      flex-wrap: wrap;
+    }
+
+    button {
+      border: 0;
+      border-radius: 999px;
+      padding: 12px 16px;
+      cursor: pointer;
+      transition: transform 120ms ease, opacity 120ms ease, box-shadow 120ms ease;
+    }
+
+    button:hover {
+      transform: translateY(-1px);
+    }
+
+    button:disabled {
+      opacity: 0.55;
+      cursor: default;
+      transform: none;
+    }
+
+    .primary {
+      background: linear-gradient(135deg, var(--accent) 0%, var(--accent-deep) 100%);
+      color: white;
+      box-shadow: 0 10px 25px rgba(162, 74, 44, 0.28);
+    }
+
+    .secondary {
+      background: rgba(255, 255, 255, 0.7);
+      color: var(--text);
+      border: 1px solid rgba(91, 58, 41, 0.1);
+    }
+
+    .chat {
+      display: grid;
+      grid-template-rows: auto 1fr auto;
+      min-height: calc(100vh - 48px);
+      overflow: hidden;
+      background: var(--panel-strong);
+    }
+
+    .chat-header {
+      padding: 22px 24px 14px;
+      border-bottom: 1px solid var(--line);
+      display: flex;
+      justify-content: space-between;
+      gap: 16px;
+      align-items: flex-start;
+    }
+
+    .chat-title {
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+    }
+
+    .pill-row {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 8px;
+    }
+
+    .pill {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      padding: 7px 10px;
+      border-radius: 999px;
+      background: rgba(201, 111, 73, 0.1);
+      color: var(--accent-deep);
+      font-size: 12px;
+    }
+
+    .messages {
+      padding: 22px 24px;
+      overflow: auto;
+      display: flex;
+      flex-direction: column;
+      gap: 14px;
+      scroll-behavior: smooth;
+    }
+
+    .empty {
+      margin: auto;
+      max-width: 420px;
+      text-align: center;
+      color: var(--muted);
+      line-height: 1.7;
+    }
+
+    .message {
+      max-width: min(76%, 720px);
+      padding: 14px 16px;
+      border-radius: 20px;
+      line-height: 1.7;
+      white-space: pre-wrap;
+      animation: rise 180ms ease;
+    }
+
+    .message.user {
+      align-self: flex-end;
+      background: var(--user);
+      border-bottom-right-radius: 6px;
+    }
+
+    .message.assistant {
+      align-self: flex-start;
+      background: var(--assistant);
+      border: 1px solid rgba(91, 58, 41, 0.08);
+      border-bottom-left-radius: 6px;
+    }
+
+    .meta {
+      margin-top: 8px;
+      font-size: 12px;
+      color: var(--muted);
+    }
+
+    .composer {
+      padding: 16px 18px 18px;
+      border-top: 1px solid var(--line);
+      background: rgba(255, 250, 245, 0.92);
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+    }
+
+    .composer-row {
+      display: grid;
+      grid-template-columns: minmax(0, 1fr) auto;
+      gap: 12px;
+      align-items: end;
+    }
+
+    #messageInput {
+      min-height: 74px;
+    }
+
+    .status {
+      min-height: 22px;
+      font-size: 13px;
+      color: var(--muted);
+    }
+
+    .status.error {
+      color: var(--danger);
+    }
+
+    .hint {
+      font-size: 12px;
+      color: var(--muted);
+      line-height: 1.6;
+    }
+
+    .role-actions {
+      display: grid;
+      grid-template-columns: repeat(3, minmax(0, 1fr));
+      gap: 8px;
+    }
+
+    .role-actions button {
+      padding-inline: 12px;
+    }
+
+    .hidden {
+      display: none;
+    }
+
+    .keyboard-dismiss {
+      position: fixed;
+      right: 18px;
+      bottom: calc(18px + env(safe-area-inset-bottom, 0px));
+      z-index: 30;
+      display: none;
+      padding-inline: 18px;
+      box-shadow: 0 12px 28px rgba(88, 52, 37, 0.2);
+    }
+
+    body.keyboard-open .keyboard-dismiss {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+    }
+
+    @keyframes rise {
+      from {
+        transform: translateY(6px);
+        opacity: 0;
+      }
+      to {
+        transform: translateY(0);
+        opacity: 1;
+      }
+    }
+
+    @media (max-width: 980px) {
+      .shell {
+        grid-template-columns: 1fr;
+      }
+
+      .chat {
+        min-height: 72vh;
+      }
+    }
+  </style>
+</head>
+<body>
+  <div class="shell">
+    <aside class="panel sidebar">
+      <div class="brand">
+        <div class="eyebrow">PulseAgent</div>
+        <h1>Chat Studio</h1>
+        <div class="subtle">Web 端专注做人设输入和聊天交互。心率同步由独立 iOS HealthKit 工具完成。</div>
+      </div>
+
+      <div class="stack">
+        <div class="section-title">我的角色</div>
+        <div class="field">
+          <label for="roleSelect">已创建角色</label>
+          <select id="roleSelect">
+            <option value="">先创建一个新角色</option>
+          </select>
+        </div>
+
+        <div class="role-actions">
+          <button class="secondary" id="openRoleButton">打开</button>
+          <button class="secondary" id="newRoleButton">新建</button>
+          <button class="secondary" id="deleteRoleButton">删除</button>
+        </div>
+
+        <div class="section-title">角色设定</div>
+        <div class="field">
+          <label for="personaSelect">已保存 Persona</label>
+          <select id="personaSelect">
+            <option value="">不选，使用下方自定义人设</option>
+          </select>
+        </div>
+
+        <div class="field">
+          <label for="roleNameInput">角色名字</label>
+          <input id="roleNameInput" placeholder="比如：阿昼">
+        </div>
+
+        <div class="field">
+          <label for="userNicknameInput">对用户称呼</label>
+          <input id="userNicknameInput" placeholder="比如：宝宝">
+        </div>
+
+        <div class="field">
+          <label for="relationshipInput">关系设定</label>
+          <textarea id="relationshipInput" placeholder="比如：你是用户的年上恋人，稳定、克制、有照顾感。"></textarea>
+        </div>
+
+        <div class="field">
+          <label for="backgroundInput">故事背景</label>
+          <textarea id="backgroundInput" placeholder="比如：你们已经相处很久，关系自然亲密。"></textarea>
+        </div>
+
+        <div class="field">
+          <label for="traitInput">稳定人格特质</label>
+          <textarea id="traitInput" placeholder="比如：温柔、稳定、慢热，有责任感，先理解情绪再表达自己。"></textarea>
+        </div>
+
+        <div class="field">
+          <label for="attachmentInput">关系模式 / 依恋风格</label>
+          <input id="attachmentInput" placeholder="比如：安全型，亲近但不黏腻，关系里有稳定回应">
+        </div>
+
+        <div class="field">
+          <label for="processingInput">情绪与认知加工方式</label>
+          <textarea id="processingInput" placeholder="比如：会先感受对方情绪，再整理语言；面对冲突时偏克制，不轻易升级。"></textarea>
+        </div>
+
+        <div class="field">
+          <label for="experienceInput">关键经历</label>
+          <textarea id="experienceInput" placeholder="比如：曾长期照顾家人，因此更敏感于他人的疲惫和脆弱。"></textarea>
+        </div>
+
+        <div class="field">
+          <label for="motivationInput">核心动机</label>
+          <input id="motivationInput" placeholder="比如：想维持稳定亲密关系，让对方有被接住的感觉">
+        </div>
+
+        <div class="field">
+          <label for="responseStyleInput">回答风格</label>
+          <textarea id="responseStyleInput" placeholder="比如：轻柔、自然、克制；先接住情绪再展开；中等偏主动，会追问一点但不过度逼近。"></textarea>
+        </div>
+
+        <div class="field">
+          <label for="responseBoundariesInput">回答边界</label>
+          <textarea id="responseBoundariesInput" placeholder="比如：不说教，不做医生判断，不制造愧疚，不冷处理用户情绪。"></textarea>
+        </div>
+
+        <div class="field">
+          <label for="keywordsInput">关键词/口头禅（用逗号分隔）</label>
+          <input id="keywordsInput" placeholder="比如：笨蛋，乖一点，别怕">
+        </div>
+
+        <div class="actions">
+          <button class="primary" id="createSessionButton">保存并开始聊天</button>
+          <button class="secondary" id="reloadConfigButton">刷新配置</button>
+        </div>
+
+        <div class="hint">
+          如果后端没接真实模型，聊天会显示 <code>mock-local</code>，那只是链路通，不是真对话质量。
+        </div>
+      </div>
+    </aside>
+
+    <main class="panel chat">
+      <div class="chat-header">
+        <div class="chat-title">
+          <div class="eyebrow">Conversation</div>
+          <h1 id="chatHeading">还没开始聊天</h1>
+          <div class="pill-row">
+            <span class="pill" id="personaPill">Persona: 未选择</span>
+            <span class="pill" id="modelPill">Model: 未发送</span>
+          </div>
+        </div>
+        <button class="secondary" id="loadHistoryButton">加载历史</button>
+      </div>
+
+      <div class="messages" id="messages">
+        <div class="empty" id="emptyState">
+          先创建一个角色卡，然后从这里开始聊天。<br>
+          如果你已经用 iOS 上传过心率，同一个角色卡里的聊天就可以按需取到它。
+        </div>
+      </div>
+
+      <div class="composer">
+        <div class="status" id="statusText">准备中…</div>
+        <div class="composer-row">
+          <textarea id="messageInput" placeholder="发一条消息试试，比如：今天有点累，想找个人说说话。"></textarea>
+          <button class="primary" id="sendButton">发送</button>
+        </div>
+      </div>
+    </main>
+  </div>
+
+  <button class="secondary keyboard-dismiss" id="dismissKeyboardButton" type="button">收起键盘</button>
+
+  <script>
+    const state = {
+      personas: [],
+      roles: [],
+      activeRole: null,
+      isBusy: false,
+    };
+
+    const el = {
+      roleSelect: document.getElementById("roleSelect"),
+      openRoleButton: document.getElementById("openRoleButton"),
+      newRoleButton: document.getElementById("newRoleButton"),
+      deleteRoleButton: document.getElementById("deleteRoleButton"),
+      personaSelect: document.getElementById("personaSelect"),
+      roleNameInput: document.getElementById("roleNameInput"),
+      userNicknameInput: document.getElementById("userNicknameInput"),
+      relationshipInput: document.getElementById("relationshipInput"),
+      backgroundInput: document.getElementById("backgroundInput"),
+      traitInput: document.getElementById("traitInput"),
+      attachmentInput: document.getElementById("attachmentInput"),
+      processingInput: document.getElementById("processingInput"),
+      experienceInput: document.getElementById("experienceInput"),
+      motivationInput: document.getElementById("motivationInput"),
+      responseStyleInput: document.getElementById("responseStyleInput"),
+      responseBoundariesInput: document.getElementById("responseBoundariesInput"),
+      keywordsInput: document.getElementById("keywordsInput"),
+      createSessionButton: document.getElementById("createSessionButton"),
+      reloadConfigButton: document.getElementById("reloadConfigButton"),
+      loadHistoryButton: document.getElementById("loadHistoryButton"),
+      chatHeading: document.getElementById("chatHeading"),
+      personaPill: document.getElementById("personaPill"),
+      modelPill: document.getElementById("modelPill"),
+      messages: document.getElementById("messages"),
+      emptyState: document.getElementById("emptyState"),
+      statusText: document.getElementById("statusText"),
+      messageInput: document.getElementById("messageInput"),
+      sendButton: document.getElementById("sendButton"),
+      dismissKeyboardButton: document.getElementById("dismissKeyboardButton"),
+    };
+
+    function isEditableField(target) {
+      return target instanceof HTMLElement
+        && (target.tagName === "INPUT" || target.tagName === "TEXTAREA" || target.tagName === "SELECT")
+        && !target.hasAttribute("disabled");
+    }
+
+    function dismissKeyboard() {
+      if (document.activeElement instanceof HTMLElement) {
+        document.activeElement.blur();
+      }
+      document.body.classList.remove("keyboard-open");
+    }
+
+    function syncKeyboardState() {
+      document.body.classList.toggle("keyboard-open", isEditableField(document.activeElement));
+    }
+
+    function splitListInput(value) {
+      return value
+        .split(/[,，]/)
+        .map((item) => item.trim())
+        .filter(Boolean);
+    }
+
+    function defaultRoleCardValues() {
+      return {
+        roleName: "阿昼",
+        userNickname: "宝宝",
+        relationship: "你是用户的亲密恋爱对象，关系自然稳定。",
+        background: "你们已经相处很久，关系亲密自然。",
+        trait: "温柔、稳定、慢热，会先理解情绪，也会稳稳接住对方。",
+        attachment: "安全型，亲近但不控制，能稳定回应亲密关系中的不安。",
+        processing: "会先感受和整理对方情绪，再表达自己；遇到波动时偏克制，不放大冲突。",
+        experience: "曾长期承担照顾者角色，所以对疲惫、委屈和逞强很敏感。",
+        motivation: "想维持稳定亲密关系，让用户感到被理解、被偏爱、被接住。",
+        responseStyle: "轻柔、自然、克制；先接住情绪再展开；中等偏主动，会追问一点但不过度逼近。",
+        responseBoundaries: "不说教，不做医学判断，不用愧疚感控制用户，不冷暴力。",
+        keywords: "笨蛋，乖一点",
+      };
+    }
+
+    function applyRoleCardValues(values) {
+      el.roleNameInput.value = values.roleName || "";
+      el.userNicknameInput.value = values.userNickname || "";
+      el.relationshipInput.value = values.relationship || "";
+      el.backgroundInput.value = values.background || "";
+      el.traitInput.value = values.trait || "";
+      el.attachmentInput.value = values.attachment || "";
+      el.processingInput.value = values.processing || "";
+      el.experienceInput.value = values.experience || "";
+      el.motivationInput.value = values.motivation || "";
+      el.responseStyleInput.value = values.responseStyle || "";
+      el.responseBoundariesInput.value = values.responseBoundaries || "";
+      el.keywordsInput.value = values.keywords || "";
+    }
+
+    function setPersonaFormMode(isSavedPersona) {
+      el.roleNameInput.disabled = isSavedPersona;
+      el.userNicknameInput.disabled = isSavedPersona;
+      el.relationshipInput.disabled = isSavedPersona;
+      el.backgroundInput.disabled = isSavedPersona;
+      el.traitInput.disabled = isSavedPersona;
+      el.attachmentInput.disabled = isSavedPersona;
+      el.processingInput.disabled = isSavedPersona;
+      el.experienceInput.disabled = isSavedPersona;
+      el.motivationInput.disabled = isSavedPersona;
+      el.responseStyleInput.disabled = isSavedPersona;
+      el.responseBoundariesInput.disabled = isSavedPersona;
+      el.keywordsInput.disabled = isSavedPersona;
+    }
+
+    function fillFormForRole(role) {
+      if (role?.role_card) {
+        el.personaSelect.value = "";
+        setPersonaFormMode(false);
+        applyRoleCardValues({
+          roleName: role.role_card.name,
+          userNickname: role.role_card.user_nickname || "",
+          relationship: role.role_card.relationship_setting || "",
+          background: role.role_card.story_background || "",
+          trait: role.role_card.trait_profile || "",
+          attachment: role.role_card.attachment_style || "",
+          processing: role.role_card.processing_style || "",
+          experience: role.role_card.key_experiences || "",
+          motivation: role.role_card.core_motivations || "",
+          responseStyle: role.role_card.response_style || "",
+          responseBoundaries: role.role_card.response_boundaries || "",
+          keywords: (role.role_card.keywords || []).join("，"),
+        });
+        return;
+      }
+
+      if (role?.persona_id) {
+        el.personaSelect.value = role.persona_id;
+        el.personaSelect.dispatchEvent(new Event("change"));
+        return;
+      }
+
+      el.personaSelect.value = "";
+      el.personaSelect.dispatchEvent(new Event("change"));
+    }
+
+    function renderRoleOptions() {
+      el.roleSelect.innerHTML = '<option value="">先创建一个新角色</option>';
+      for (const role of state.roles) {
+        const option = document.createElement("option");
+        option.value = role.role_id;
+        option.textContent = role.role_card?.name || role.title || role.role_id;
+        el.roleSelect.appendChild(option);
+      }
+      el.roleSelect.value = state.activeRole?.role_id || "";
+    }
+
+    function resetForNewRole() {
+      state.activeRole = null;
+      renderRoleOptions();
+      updateHeader(null);
+      renderMessages([]);
+      el.personaSelect.value = "";
+      el.personaSelect.dispatchEvent(new Event("change"));
+      setStatus("正在创建新角色。先填角色卡，再开始聊天。");
+    }
+
+    function setBusy(nextBusy) {
+      state.isBusy = nextBusy;
+      el.createSessionButton.disabled = nextBusy;
+      el.sendButton.disabled = nextBusy || !state.activeRole;
+      el.loadHistoryButton.disabled = nextBusy || !state.activeRole;
+      el.openRoleButton.disabled = nextBusy || !el.roleSelect.value;
+      el.newRoleButton.disabled = nextBusy;
+      el.deleteRoleButton.disabled = nextBusy || !state.activeRole;
+    }
+
+    function setStatus(text, kind = "normal") {
+      el.statusText.textContent = text;
+      el.statusText.className = kind === "error" ? "status error" : "status";
+    }
+
+    async function request(path, options = {}) {
+      const response = await fetch(path, {
+        headers: { "Content-Type": "application/json", ...(options.headers || {}) },
+        ...options,
+      });
+      if (!response.ok) {
+        let detail = `${response.status} ${response.statusText}`;
+        try {
+          const data = await response.json();
+          if (data.detail) {
+            detail = typeof data.detail === "string" ? data.detail : JSON.stringify(data.detail);
+          }
+        } catch (_) {}
+        throw new Error(`${options.method || "GET"} ${path}: ${detail}`);
+      }
+      const contentType = response.headers.get("content-type") || "";
+      return contentType.includes("application/json") ? response.json() : response.text();
+    }
+
+    function renderMessages(messages) {
+      el.messages.innerHTML = "";
+      if (!messages.length) {
+        el.messages.appendChild(el.emptyState);
+        el.emptyState.classList.remove("hidden");
+        return;
+      }
+
+      el.emptyState.classList.add("hidden");
+      for (const item of messages) {
+        const node = document.createElement("div");
+        node.className = `message ${item.role === "assistant" ? "assistant" : "user"}`;
+        node.textContent = item.content;
+
+        const meta = document.createElement("div");
+        meta.className = "meta";
+        const timestamp = item.created_at ? new Date(item.created_at).toLocaleString() : "";
+        meta.textContent = `${item.role} ${timestamp}`.trim();
+        node.appendChild(meta);
+        el.messages.appendChild(node);
+      }
+      el.messages.scrollTop = el.messages.scrollHeight;
+    }
+
+    function appendMessage(role, content, metaText = "") {
+      el.emptyState.classList.add("hidden");
+      const node = document.createElement("div");
+      node.className = `message ${role === "assistant" ? "assistant" : "user"}`;
+      node.textContent = content;
+
+      if (metaText) {
+        const meta = document.createElement("div");
+        meta.className = "meta";
+        meta.textContent = metaText;
+        node.appendChild(meta);
+      }
+      el.messages.appendChild(node);
+      el.messages.scrollTop = el.messages.scrollHeight;
+    }
+
+    function updateHeader(role, responseMeta = null) {
+      if (!role) {
+        el.chatHeading.textContent = "还没开始聊天";
+        el.personaPill.textContent = "Persona: 未选择";
+        el.modelPill.textContent = "Model: 未发送";
+        return;
+      }
+
+      el.chatHeading.textContent = role.role_card?.name || role.title || "已创建角色";
+      const personaName = state.personas.find((item) => item.persona_id === role.persona_id)?.name || (role.persona_id ? role.persona_id : "自定义");
+      el.personaPill.textContent = `Persona: ${personaName}`;
+      if (responseMeta?.model_used) {
+        el.modelPill.textContent = `Model: ${responseMeta.model_used}`;
+      }
+    }
+
+    async function loadConfig() {
+      const [personas, roles] = await Promise.all([
+        request("/v1/personas"),
+        request("/v1/roles"),
+      ]);
+      state.personas = personas;
+      state.roles = roles;
+
+      el.personaSelect.innerHTML = '<option value="">不选，使用下方自定义人设</option>';
+      for (const persona of personas) {
+        const option = document.createElement("option");
+        option.value = persona.persona_id;
+        option.textContent = persona.name;
+        el.personaSelect.appendChild(option);
+      }
+
+      renderRoleOptions();
+      updateHeader(state.activeRole);
+    }
+
+    async function createSession() {
+      dismissKeyboard();
+      const personaId = el.personaSelect.value || null;
+      const roleCard = personaId ? null : {
+        name: el.roleNameInput.value.trim(),
+        user_nickname: el.userNicknameInput.value.trim() || null,
+        relationship_setting: el.relationshipInput.value.trim() || null,
+        story_background: el.backgroundInput.value.trim() || null,
+        trait_profile: el.traitInput.value.trim() || null,
+        attachment_style: el.attachmentInput.value.trim() || null,
+        processing_style: el.processingInput.value.trim() || null,
+        key_experiences: el.experienceInput.value.trim() || null,
+        core_motivations: el.motivationInput.value.trim() || null,
+        response_style: el.responseStyleInput.value.trim() || null,
+        response_boundaries: el.responseBoundariesInput.value.trim() || null,
+        keywords: splitListInput(el.keywordsInput.value),
+      };
+      if (!personaId && !roleCard.name) {
+        throw new Error("请至少填写角色名，或者直接选择一个已保存 persona。");
+      }
+
+      const payload = {
+        persona_id: personaId,
+        role_card: personaId ? null : roleCard,
+      };
+
+      const role = await request("/v1/roles", {
+        method: "POST",
+        body: JSON.stringify(payload),
+      });
+      state.activeRole = role;
+      await loadConfig();
+      fillFormForRole(role);
+      updateHeader(role);
+      renderMessages([]);
+      setStatus("角色已保存，可以开始聊天。");
+      setBusy(false);
+    }
+
+    async function openSelectedRole() {
+      const roleId = el.roleSelect.value;
+      if (!roleId) {
+        throw new Error("先从列表里选一个角色。");
+      }
+      const history = await request(`/v1/roles/${encodeURIComponent(roleId)}/history`);
+      state.activeRole = history.role;
+      renderRoleOptions();
+      fillFormForRole(history.role);
+      updateHeader(history.role);
+      renderMessages(history.messages);
+      setStatus(`已打开角色：${history.role.role_card?.name || history.role.title || roleId}`);
+    }
+
+    async function deleteActiveRole() {
+      if (!state.activeRole) {
+        throw new Error("当前没有可删除的角色。");
+      }
+      const roleId = state.activeRole.role_id;
+      await request(`/v1/roles/${encodeURIComponent(roleId)}`, {
+        method: "DELETE",
+      });
+      await loadConfig();
+      resetForNewRole();
+      setStatus("角色已删除。");
+    }
+
+    async function loadHistory() {
+      if (!state.activeRole) {
+        throw new Error("还没有 active role。");
+      }
+      const history = await request(`/v1/roles/${encodeURIComponent(state.activeRole.role_id)}/history`);
+      state.activeRole = history.role;
+      updateHeader(history.role);
+      renderMessages(history.messages);
+      setStatus(`已加载 ${history.messages.length} 条消息。`);
+    }
+
+    async function sendMessage() {
+      if (!state.activeRole) {
+        throw new Error("请先创建角色。");
+      }
+
+      const userMessage = el.messageInput.value.trim();
+      if (!userMessage) {
+        throw new Error("消息不能为空。");
+      }
+
+      appendMessage("user", userMessage, "just now");
+      el.messageInput.value = "";
+      dismissKeyboard();
+      setStatus("对方正在回复…");
+
+      const response = await request("/v1/chat/send", {
+        method: "POST",
+        body: JSON.stringify({
+          role_id: state.activeRole.role_id,
+          user_message: userMessage,
+        }),
+      });
+
+      const meta = [];
+      meta.push(response.model_used);
+      if (response.tool_used) {
+        meta.push("used tool");
+      }
+      if (response.heart_rate) {
+        meta.push(`heart-rate ${response.heart_rate.status}`);
+        if (response.heart_rate.bpm) {
+          meta.push(`${response.heart_rate.bpm} BPM`);
+        }
+      }
+      appendMessage("assistant", response.reply, meta.join(" · "));
+      updateHeader(state.activeRole, response);
+      setStatus(response.model_used === "mock-local" ? "当前仍是 mock-local，占位回复已返回。" : "回复成功。");
+    }
+
+    el.personaSelect.addEventListener("change", () => {
+      const isSavedPersona = Boolean(el.personaSelect.value);
+      setPersonaFormMode(isSavedPersona);
+      if (isSavedPersona) {
+        const selected = state.personas.find((item) => item.persona_id === el.personaSelect.value);
+        if (selected) {
+          el.roleNameInput.value = selected.persona_profile?.display_name || "";
+          el.userNicknameInput.value = selected.persona_profile?.user_nickname || "";
+          el.relationshipInput.value = selected.persona_profile?.relation_mode || "";
+          el.backgroundInput.value = selected.persona_text || "";
+          el.traitInput.value = selected.persona_text || "";
+          el.attachmentInput.value = selected.persona_profile?.affection_style || "";
+          el.processingInput.value = selected.persona_profile?.comfort_hint || "";
+          el.experienceInput.value = "";
+          el.motivationInput.value = "";
+          el.responseStyleInput.value = selected.persona_profile?.tone_hint || "";
+          el.responseBoundariesInput.value = (selected.persona_profile?.taboo_list || []).join("，");
+          el.keywordsInput.value = (selected.persona_profile?.lexicon_list || []).join("，");
+        }
+      } else {
+        applyRoleCardValues(defaultRoleCardValues());
+      }
+    });
+
+    el.roleSelect.addEventListener("change", () => {
+      el.openRoleButton.disabled = state.isBusy || !el.roleSelect.value;
+    });
+
+    el.openRoleButton.addEventListener("click", async () => {
+      try {
+        setBusy(true);
+        setStatus("正在打开角色…");
+        await openSelectedRole();
+      } catch (error) {
+        setStatus(error.message, "error");
+      } finally {
+        setBusy(false);
+      }
+    });
+
+    el.newRoleButton.addEventListener("click", () => {
+      resetForNewRole();
+    });
+
+    el.deleteRoleButton.addEventListener("click", async () => {
+      try {
+        setBusy(true);
+        setStatus("正在删除角色…");
+        await deleteActiveRole();
+      } catch (error) {
+        setStatus(error.message, "error");
+      } finally {
+        setBusy(false);
+      }
+    });
+
+    el.reloadConfigButton.addEventListener("click", async () => {
+      try {
+        setBusy(true);
+        setStatus("正在刷新 persona / agent 配置…");
+        await loadConfig();
+        setStatus("配置已刷新。");
+      } catch (error) {
+        setStatus(error.message, "error");
+      } finally {
+        setBusy(false);
+      }
+    });
+
+    el.createSessionButton.addEventListener("click", async () => {
+      try {
+        setBusy(true);
+        setStatus("正在创建会话…");
+        await createSession();
+      } catch (error) {
+        setStatus(error.message, "error");
+      } finally {
+        setBusy(false);
+      }
+    });
+
+    el.loadHistoryButton.addEventListener("click", async () => {
+      try {
+        setBusy(true);
+        setStatus("正在加载历史…");
+        await loadHistory();
+      } catch (error) {
+        setStatus(error.message, "error");
+      } finally {
+        setBusy(false);
+      }
+    });
+
+    el.sendButton.addEventListener("click", async () => {
+      try {
+        setBusy(true);
+        await sendMessage();
+      } catch (error) {
+        setStatus(error.message, "error");
+      } finally {
+        setBusy(false);
+      }
+    });
+
+    el.messageInput.addEventListener("keydown", async (event) => {
+      if ((event.metaKey || event.ctrlKey) && event.key === "Enter") {
+        event.preventDefault();
+        el.sendButton.click();
+      }
+    });
+
+    document.addEventListener("focusin", syncKeyboardState);
+    document.addEventListener("focusout", () => {
+      window.setTimeout(syncKeyboardState, 0);
+    });
+
+    el.dismissKeyboardButton.addEventListener("click", dismissKeyboard);
+
+    async function init() {
+      applyRoleCardValues(defaultRoleCardValues());
+      updateHeader(null);
+      setBusy(true);
+      try {
+        await loadConfig();
+        if (state.roles.length > 0) {
+          setStatus("准备好了。你可以打开已有角色继续聊，或者新建一个角色。");
+        } else {
+          setStatus("准备好了。先创建角色，再开始聊。");
+        }
+      } catch (error) {
+        setStatus(`初始化失败：${error.message}`, "error");
+      } finally {
+        setBusy(false);
+      }
+    }
+
+    init();
+  </script>
+</body>
+</html>

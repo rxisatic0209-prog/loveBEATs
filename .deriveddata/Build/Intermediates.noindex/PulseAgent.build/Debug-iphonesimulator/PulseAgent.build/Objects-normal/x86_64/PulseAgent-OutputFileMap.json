@@ -1,0 +1,89 @@
+{
+  "" : {
+    "diagnostics" : "/Users/rxie/Desktop/loveBEATs/.deriveddata/Build/Intermediates.noindex/PulseAgent.build/Debug-iphonesimulator/PulseAgent.build/Objects-normal/x86_64/PulseAgent-primary.dia",
+    "emit-module-dependencies" : "/Users/rxie/Desktop/loveBEATs/.deriveddata/Build/Intermediates.noindex/PulseAgent.build/Debug-iphonesimulator/PulseAgent.build/Objects-normal/x86_64/PulseAgent-primary-emit-module.d",
+    "emit-module-diagnostics" : "/Users/rxie/Desktop/loveBEATs/.deriveddata/Build/Intermediates.noindex/PulseAgent.build/Debug-iphonesimulator/PulseAgent.build/Objects-normal/x86_64/PulseAgent-primary-emit-module.dia",
+    "pch" : "/Users/rxie/Desktop/loveBEATs/.deriveddata/Build/Intermediates.noindex/PulseAgent.build/Debug-iphonesimulator/PulseAgent.build/Objects-normal/x86_64/PulseAgent-primary-Bridging-header.pch",
+    "swift-dependencies" : "/Users/rxie/Desktop/loveBEATs/.deriveddata/Build/Intermediates.noindex/PulseAgent.build/Debug-iphonesimulator/PulseAgent.build/Objects-normal/x86_64/PulseAgent-primary.swiftdeps"
+  },
+  "/Users/rxie/Desktop/loveBEATs/.deriveddata/Build/Intermediates.noindex/PulseAgent.build/Debug-iphonesimulator/PulseAgent.build/DerivedSources/GeneratedAssetSymbols.swift" : {
+    "const-values" : "/Users/rxie/Desktop/loveBEATs/.deriveddata/Build/Intermediates.noindex/PulseAgent.build/Debug-iphonesimulator/PulseAgent.build/Objects-normal/x86_64/GeneratedAssetSymbols.swiftconstvalues",
+    "dependencies" : "/Users/rxie/Desktop/loveBEATs/.deriveddata/Build/Intermediates.noindex/PulseAgent.build/Debug-iphonesimulator/PulseAgent.build/Objects-normal/x86_64/GeneratedAssetSymbols.d",
+    "diagnostics" : "/Users/rxie/Desktop/loveBEATs/.deriveddata/Build/Intermediates.noindex/PulseAgent.build/Debug-iphonesimulator/PulseAgent.build/Objects-normal/x86_64/GeneratedAssetSymbols.dia",
+    "index-unit-output-path" : "/PulseAgent.build/Debug-iphonesimulator/PulseAgent.build/Objects-normal/x86_64/GeneratedAssetSymbols.o",
+    "llvm-bc" : "/Users/rxie/Desktop/loveBEATs/.deriveddata/Build/Intermediates.noindex/PulseAgent.build/Debug-iphonesimulator/PulseAgent.build/Objects-normal/x86_64/GeneratedAssetSymbols.bc",
+    "object" : "/Users/rxie/Desktop/loveBEATs/.deriveddata/Build/Intermediates.noindex/PulseAgent.build/Debug-iphonesimulator/PulseAgent.build/Objects-normal/x86_64/GeneratedAssetSymbols.o",
+    "swift-dependencies" : "/Users/rxie/Desktop/loveBEATs/.deriveddata/Build/Intermediates.noindex/PulseAgent.build/Debug-iphonesimulator/PulseAgent.build/Objects-normal/x86_64/GeneratedAssetSymbols.swiftdeps",
+    "swiftmodule" : "/Users/rxie/Desktop/loveBEATs/.deriveddata/Build/Intermediates.noindex/PulseAgent.build/Debug-iphonesimulator/PulseAgent.build/Objects-normal/x86_64/GeneratedAssetSymbols~partial.swiftmodule"
+  },
+  "/Users/rxie/Desktop/loveBEATs/ios/PulseAgent/PulseAgent/ContentView.swift" : {
+    "const-values" : "/Users/rxie/Desktop/loveBEATs/.deriveddata/Build/Intermediates.noindex/PulseAgent.build/Debug-iphonesimulator/PulseAgent.build/Objects-normal/x86_64/ContentView.swiftconstvalues",
+    "dependencies" : "/Users/rxie/Desktop/loveBEATs/.deriveddata/Build/Intermediates.noindex/PulseAgent.build/Debug-iphonesimulator/PulseAgent.build/Objects-normal/x86_64/ContentView.d",
+    "diagnostics" : "/Users/rxie/Desktop/loveBEATs/.deriveddata/Build/Intermediates.noindex/PulseAgent.build/Debug-iphonesimulator/PulseAgent.build/Objects-normal/x86_64/ContentView.dia",
+    "index-unit-output-path" : "/PulseAgent.build/Debug-iphonesimulator/PulseAgent.build/Objects-normal/x86_64/ContentView.o",
+    "llvm-bc" : "/Users/rxie/Desktop/loveBEATs/.deriveddata/Build/Intermediates.noindex/PulseAgent.build/Debug-iphonesimulator/PulseAgent.build/Objects-normal/x86_64/ContentView.bc",
+    "object" : "/Users/rxie/Desktop/loveBEATs/.deriveddata/Build/Intermediates.noindex/PulseAgent.build/Debug-iphonesimulator/PulseAgent.build/Objects-normal/x86_64/ContentView.o",
+    "swift-dependencies" : "/Users/rxie/Desktop/loveBEATs/.deriveddata/Build/Intermediates.noindex/PulseAgent.build/Debug-iphonesimulator/PulseAgent.build/Objects-normal/x86_64/ContentView.swiftdeps",
+    "swiftmodule" : "/Users/rxie/Desktop/loveBEATs/.deriveddata/Build/Intermediates.noindex/PulseAgent.build/Debug-iphonesimulator/PulseAgent.build/Objects-normal/x86_64/ContentView~partial.swiftmodule"
+  },
+  "/Users/rxie/Desktop/loveBEATs/ios/PulseAgent/PulseAgent/Models/HeartRatePayload.swift" : {
+    "const-values" : "/Users/rxie/Desktop/loveBEATs/.deriveddata/Build/Intermediates.noindex/PulseAgent.build/Debug-iphonesimulator/PulseAgent.build/Objects-normal/x86_64/HeartRatePayload.swiftconstvalues",
+    "dependencies" : "/Users/rxie/Desktop/loveBEATs/.deriveddata/Build/Intermediates.noindex/PulseAgent.build/Debug-iphonesimulator/PulseAgent.build/Objects-normal/x86_64/HeartRatePayload.d",
+    "diagnostics" : "/Users/rxie/Desktop/loveBEATs/.deriveddata/Build/Intermediates.noindex/PulseAgent.build/Debug-iphonesimulator/PulseAgent.build/Objects-normal/x86_64/HeartRatePayload.dia",
+    "index-unit-output-path" : "/PulseAgent.build/Debug-iphonesimulator/PulseAgent.build/Objects-normal/x86_64/HeartRatePayload.o",
+    "llvm-bc" : "/Users/rxie/Desktop/loveBEATs/.deriveddata/Build/Intermediates.noindex/PulseAgent.build/Debug-iphonesimulator/PulseAgent.build/Objects-normal/x86_64/HeartRatePayload.bc",
+    "object" : "/Users/rxie/Desktop/loveBEATs/.deriveddata/Build/Intermediates.noindex/PulseAgent.build/Debug-iphonesimulator/PulseAgent.build/Objects-normal/x86_64/HeartRatePayload.o",
+    "swift-dependencies" : "/Users/rxie/Desktop/loveBEATs/.deriveddata/Build/Intermediates.noindex/PulseAgent.build/Debug-iphonesimulator/PulseAgent.build/Objects-normal/x86_64/HeartRatePayload.swiftdeps",
+    "swiftmodule" : "/Users/rxie/Desktop/loveBEATs/.deriveddata/Build/Intermediates.noindex/PulseAgent.build/Debug-iphonesimulator/PulseAgent.build/Objects-normal/x86_64/HeartRatePayload~partial.swiftmodule"
+  },
+  "/Users/rxie/Desktop/loveBEATs/ios/PulseAgent/PulseAgent/PulseAgentApp.swift" : {
+    "const-values" : "/Users/rxie/Desktop/loveBEATs/.deriveddata/Build/Intermediates.noindex/PulseAgent.build/Debug-iphonesimulator/PulseAgent.build/Objects-normal/x86_64/PulseAgentApp.swiftconstvalues",
+    "dependencies" : "/Users/rxie/Desktop/loveBEATs/.deriveddata/Build/Intermediates.noindex/PulseAgent.build/Debug-iphonesimulator/PulseAgent.build/Objects-normal/x86_64/PulseAgentApp.d",
+    "diagnostics" : "/Users/rxie/Desktop/loveBEATs/.deriveddata/Build/Intermediates.noindex/PulseAgent.build/Debug-iphonesimulator/PulseAgent.build/Objects-normal/x86_64/PulseAgentApp.dia",
+    "index-unit-output-path" : "/PulseAgent.build/Debug-iphonesimulator/PulseAgent.build/Objects-normal/x86_64/PulseAgentApp.o",
+    "llvm-bc" : "/Users/rxie/Desktop/loveBEATs/.deriveddata/Build/Intermediates.noindex/PulseAgent.build/Debug-iphonesimulator/PulseAgent.build/Objects-normal/x86_64/PulseAgentApp.bc",
+    "object" : "/Users/rxie/Desktop/loveBEATs/.deriveddata/Build/Intermediates.noindex/PulseAgent.build/Debug-iphonesimulator/PulseAgent.build/Objects-normal/x86_64/PulseAgentApp.o",
+    "swift-dependencies" : "/Users/rxie/Desktop/loveBEATs/.deriveddata/Build/Intermediates.noindex/PulseAgent.build/Debug-iphonesimulator/PulseAgent.build/Objects-normal/x86_64/PulseAgentApp.swiftdeps",
+    "swiftmodule" : "/Users/rxie/Desktop/loveBEATs/.deriveddata/Build/Intermediates.noindex/PulseAgent.build/Debug-iphonesimulator/PulseAgent.build/Objects-normal/x86_64/PulseAgentApp~partial.swiftmodule"
+  },
+  "/Users/rxie/Desktop/loveBEATs/ios/PulseAgent/PulseAgent/Services/AppConfig.swift" : {
+    "const-values" : "/Users/rxie/Desktop/loveBEATs/.deriveddata/Build/Intermediates.noindex/PulseAgent.build/Debug-iphonesimulator/PulseAgent.build/Objects-normal/x86_64/AppConfig.swiftconstvalues",
+    "dependencies" : "/Users/rxie/Desktop/loveBEATs/.deriveddata/Build/Intermediates.noindex/PulseAgent.build/Debug-iphonesimulator/PulseAgent.build/Objects-normal/x86_64/AppConfig.d",
+    "diagnostics" : "/Users/rxie/Desktop/loveBEATs/.deriveddata/Build/Intermediates.noindex/PulseAgent.build/Debug-iphonesimulator/PulseAgent.build/Objects-normal/x86_64/AppConfig.dia",
+    "index-unit-output-path" : "/PulseAgent.build/Debug-iphonesimulator/PulseAgent.build/Objects-normal/x86_64/AppConfig.o",
+    "llvm-bc" : "/Users/rxie/Desktop/loveBEATs/.deriveddata/Build/Intermediates.noindex/PulseAgent.build/Debug-iphonesimulator/PulseAgent.build/Objects-normal/x86_64/AppConfig.bc",
+    "object" : "/Users/rxie/Desktop/loveBEATs/.deriveddata/Build/Intermediates.noindex/PulseAgent.build/Debug-iphonesimulator/PulseAgent.build/Objects-normal/x86_64/AppConfig.o",
+    "swift-dependencies" : "/Users/rxie/Desktop/loveBEATs/.deriveddata/Build/Intermediates.noindex/PulseAgent.build/Debug-iphonesimulator/PulseAgent.build/Objects-normal/x86_64/AppConfig.swiftdeps",
+    "swiftmodule" : "/Users/rxie/Desktop/loveBEATs/.deriveddata/Build/Intermediates.noindex/PulseAgent.build/Debug-iphonesimulator/PulseAgent.build/Objects-normal/x86_64/AppConfig~partial.swiftmodule"
+  },
+  "/Users/rxie/Desktop/loveBEATs/ios/PulseAgent/PulseAgent/Services/BackendClient.swift" : {
+    "const-values" : "/Users/rxie/Desktop/loveBEATs/.deriveddata/Build/Intermediates.noindex/PulseAgent.build/Debug-iphonesimulator/PulseAgent.build/Objects-normal/x86_64/BackendClient.swiftconstvalues",
+    "dependencies" : "/Users/rxie/Desktop/loveBEATs/.deriveddata/Build/Intermediates.noindex/PulseAgent.build/Debug-iphonesimulator/PulseAgent.build/Objects-normal/x86_64/BackendClient.d",
+    "diagnostics" : "/Users/rxie/Desktop/loveBEATs/.deriveddata/Build/Intermediates.noindex/PulseAgent.build/Debug-iphonesimulator/PulseAgent.build/Objects-normal/x86_64/BackendClient.dia",
+    "index-unit-output-path" : "/PulseAgent.build/Debug-iphonesimulator/PulseAgent.build/Objects-normal/x86_64/BackendClient.o",
+    "llvm-bc" : "/Users/rxie/Desktop/loveBEATs/.deriveddata/Build/Intermediates.noindex/PulseAgent.build/Debug-iphonesimulator/PulseAgent.build/Objects-normal/x86_64/BackendClient.bc",
+    "object" : "/Users/rxie/Desktop/loveBEATs/.deriveddata/Build/Intermediates.noindex/PulseAgent.build/Debug-iphonesimulator/PulseAgent.build/Objects-normal/x86_64/BackendClient.o",
+    "swift-dependencies" : "/Users/rxie/Desktop/loveBEATs/.deriveddata/Build/Intermediates.noindex/PulseAgent.build/Debug-iphonesimulator/PulseAgent.build/Objects-normal/x86_64/BackendClient.swiftdeps",
+    "swiftmodule" : "/Users/rxie/Desktop/loveBEATs/.deriveddata/Build/Intermediates.noindex/PulseAgent.build/Debug-iphonesimulator/PulseAgent.build/Objects-normal/x86_64/BackendClient~partial.swiftmodule"
+  },
+  "/Users/rxie/Desktop/loveBEATs/ios/PulseAgent/PulseAgent/Services/HealthKitHeartRateService.swift" : {
+    "const-values" : "/Users/rxie/Desktop/loveBEATs/.deriveddata/Build/Intermediates.noindex/PulseAgent.build/Debug-iphonesimulator/PulseAgent.build/Objects-normal/x86_64/HealthKitHeartRateService.swiftconstvalues",
+    "dependencies" : "/Users/rxie/Desktop/loveBEATs/.deriveddata/Build/Intermediates.noindex/PulseAgent.build/Debug-iphonesimulator/PulseAgent.build/Objects-normal/x86_64/HealthKitHeartRateService.d",
+    "diagnostics" : "/Users/rxie/Desktop/loveBEATs/.deriveddata/Build/Intermediates.noindex/PulseAgent.build/Debug-iphonesimulator/PulseAgent.build/Objects-normal/x86_64/HealthKitHeartRateService.dia",
+    "index-unit-output-path" : "/PulseAgent.build/Debug-iphonesimulator/PulseAgent.build/Objects-normal/x86_64/HealthKitHeartRateService.o",
+    "llvm-bc" : "/Users/rxie/Desktop/loveBEATs/.deriveddata/Build/Intermediates.noindex/PulseAgent.build/Debug-iphonesimulator/PulseAgent.build/Objects-normal/x86_64/HealthKitHeartRateService.bc",
+    "object" : "/Users/rxie/Desktop/loveBEATs/.deriveddata/Build/Intermediates.noindex/PulseAgent.build/Debug-iphonesimulator/PulseAgent.build/Objects-normal/x86_64/HealthKitHeartRateService.o",
+    "swift-dependencies" : "/Users/rxie/Desktop/loveBEATs/.deriveddata/Build/Intermediates.noindex/PulseAgent.build/Debug-iphonesimulator/PulseAgent.build/Objects-normal/x86_64/HealthKitHeartRateService.swiftdeps",
+    "swiftmodule" : "/Users/rxie/Desktop/loveBEATs/.deriveddata/Build/Intermediates.noindex/PulseAgent.build/Debug-iphonesimulator/PulseAgent.build/Objects-normal/x86_64/HealthKitHeartRateService~partial.swiftmodule"
+  },
+  "/Users/rxie/Desktop/loveBEATs/ios/PulseAgent/PulseAgent/ViewModels/HeartRateSyncViewModel.swift" : {
+    "const-values" : "/Users/rxie/Desktop/loveBEATs/.deriveddata/Build/Intermediates.noindex/PulseAgent.build/Debug-iphonesimulator/PulseAgent.build/Objects-normal/x86_64/HeartRateSyncViewModel.swiftconstvalues",
+    "dependencies" : "/Users/rxie/Desktop/loveBEATs/.deriveddata/Build/Intermediates.noindex/PulseAgent.build/Debug-iphonesimulator/PulseAgent.build/Objects-normal/x86_64/HeartRateSyncViewModel.d",
+    "diagnostics" : "/Users/rxie/Desktop/loveBEATs/.deriveddata/Build/Intermediates.noindex/PulseAgent.build/Debug-iphonesimulator/PulseAgent.build/Objects-normal/x86_64/HeartRateSyncViewModel.dia",
+    "index-unit-output-path" : "/PulseAgent.build/Debug-iphonesimulator/PulseAgent.build/Objects-normal/x86_64/HeartRateSyncViewModel.o",
+    "llvm-bc" : "/Users/rxie/Desktop/loveBEATs/.deriveddata/Build/Intermediates.noindex/PulseAgent.build/Debug-iphonesimulator/PulseAgent.build/Objects-normal/x86_64/HeartRateSyncViewModel.bc",
+    "object" : "/Users/rxie/Desktop/loveBEATs/.deriveddata/Build/Intermediates.noindex/PulseAgent.build/Debug-iphonesimulator/PulseAgent.build/Objects-normal/x86_64/HeartRateSyncViewModel.o",
+    "swift-dependencies" : "/Users/rxie/Desktop/loveBEATs/.deriveddata/Build/Intermediates.noindex/PulseAgent.build/Debug-iphonesimulator/PulseAgent.build/Objects-normal/x86_64/HeartRateSyncViewModel.swiftdeps",
+    "swiftmodule" : "/Users/rxie/Desktop/loveBEATs/.deriveddata/Build/Intermediates.noindex/PulseAgent.build/Debug-iphonesimulator/PulseAgent.build/Objects-normal/x86_64/HeartRateSyncViewModel~partial.swiftmodule"
+  }
+}

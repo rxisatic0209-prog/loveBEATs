@@ -1,21 +1,39 @@
 # LoveBeats MVP
 
-一个从零启动的后端骨架，用来验证“恋爱陪伴聊天 + persona + 按需心率 tool”这条主链路。
+当前仓库已经能跑通三条主链路：
+
+- Web 聊天前端
+- persona / agent / session 后端平台
+- iOS HealthKit 心率同步器
 
 ## 当前范围
 
 - 中文聊天
 - 当前会话窗口记忆
 - 结构化 persona 编译
+- persona 模板与 agent 配置持久化
 - 最新心率缓存与新鲜度判断
 - 单次 tool calling runtime
 - OpenAI 兼容模型接入
+- 独立 Web 聊天页
+- 独立 iOS 心率同步工具
+
+## 当前路线
+
+项目已经从“iOS 内嵌 Web 聊天”回收为更解耦的结构：
+
+- Web 负责用户的人设输入和聊天交互
+- Backend 负责 persona 编译、session、LLM、心率工具
+- iOS 只负责 HealthKit 权限和心率同步
+
+正式路线说明见：
+
+- [docs/project-plan.md](/Users/rxie/Desktop/loveBEATs/docs/project-plan.md)
 
 ## 目录
 
-- `backend/` FastAPI 服务
-- `ios/PulseAgentIOS/` SwiftUI + HealthKit 最小接入骨架
-- `docs/shortcuts-heart-rate-bridge.md` 免 iOS 开发的快捷指令心率桥接方案
+- `backend/` FastAPI 服务，包含 `http://127.0.0.1:8000/chat` 内置体验页
+- `ios/PulseAgent/` 可编译的 SwiftUI + HealthKit 心率同步工程
 
 ## 快速启动
 
@@ -29,9 +47,16 @@ uvicorn app.main:app --reload
 
 服务默认启动在 `http://127.0.0.1:8000`。
 
+启动后可直接打开：
+
+```text
+http://127.0.0.1:8000/chat
+```
+
 ## 主要接口
 
 - `GET /health`
+- `GET /chat`
 - `GET /v1/agent/scaffold`
 - `POST /v1/turns/preview`
 - `POST /v1/turns/debug`
@@ -67,10 +92,13 @@ uvicorn app.main:app --reload
 ## 环境变量
 
 ```bash
-export LLM_API_KEY=your_key
-export LLM_BASE_URL=https://aihubmix.com/v1
-export LLM_MODEL_ID=coding-glm-5-free
-export SQLITE_PATH=/Users/rxie/Desktop/loveBEATs/backend/pulseagent.db
+cd backend
+cp .env.example .env
+# 然后在 .env 里填写：
+# LLM_API_KEY=
+# LLM_BASE_URL=
+# LLM_MODEL_ID=
+# SQLITE_PATH=
 ```
 
 前端也可以在创建 session 时直接传：
@@ -90,8 +118,8 @@ export SQLITE_PATH=/Users/rxie/Desktop/loveBEATs/backend/pulseagent.db
   },
   "llm_config": {
     "api_key": "sk-...",
-    "base_url": "https://aihubmix.com/v1",
-    "model_id": "coding-glm-5-free"
+    "base_url": "https://your-openai-compatible-endpoint/v1",
+    "model_id": "your-model-id"
   }
 }
 ```
@@ -105,14 +133,20 @@ cd /Users/rxie/Desktop/loveBEATs/backend
 python3 -m unittest discover -s tests
 ```
 
-## 无前端联调
+## 体验入口
 
 ```bash
 cd /Users/rxie/Desktop/loveBEATs/backend
 make run
 ```
 
-另开一个终端：
+- 浏览器体验：
+
+```text
+http://127.0.0.1:8000/chat
+```
+
+- 接口联调：
 
 ```bash
 cd /Users/rxie/Desktop/loveBEATs/backend
@@ -132,5 +166,6 @@ make smoke
 
 - 当前使用 SQLite 单文件持久化，默认文件名为 `pulseagent.db`
 - 真实模型调用依赖有效的 `LLM_API_KEY / LLM_BASE_URL / LLM_MODEL_ID`
-- 心率仅保留“最近一次可用值”，没有历史曲线
-- Apple Watch / HealthKit 已有 iOS 侧源码骨架，但当前仓库还不是完整 Xcode 工程
+- 心率主链路是“iOS HealthKit 同步器 -> backend 存储 -> agent 内部 tool”，不直接开放给网页读取
+- Web 前端当前仍然是后端静态页形态，适合 MVP 验证
+- iOS 端需要用户手动填写运行 backend 的那台电脑的局域网地址
