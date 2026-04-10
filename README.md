@@ -28,7 +28,7 @@
 
 ## 目录
 
-- `backend/` FastAPI 服务，包含 `http://127.0.0.1:8000/chat` 内置体验页
+- `backend/` FastAPI 服务，包含 `chat` 内置体验页
 - `ios/PulseAgent/` 可编译的 SwiftUI + HealthKit 心率同步工程
 
 ## 快速启动
@@ -46,7 +46,7 @@ uvicorn app.main:app --reload
 启动后可直接打开：
 
 ```text
-http://127.0.0.1:8000/chat
+自己的网址
 ```
 
 ## 主要接口
@@ -139,7 +139,7 @@ make run
 - 浏览器体验：
 
 ```text
-http://127.0.0.1:8000/chat
+自己的网址
 ```
 
 - 接口联调：
