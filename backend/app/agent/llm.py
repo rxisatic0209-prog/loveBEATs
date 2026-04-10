@@ -1,14 +1,17 @@
 from __future__ import annotations
 
 import json
-import os
+from functools import lru_cache
 from typing import Any
 
 from openai import APIConnectionError, APITimeoutError, AuthenticationError, BadRequestError, OpenAI, PermissionDeniedError, RateLimitError
 from starlette.concurrency import run_in_threadpool
 
-from app.config import settings
+from app.agent.config import agent_settings
+from app.logging_setup import get_logger
 from app.models import LLMConfigResolved, LLMReply, ToolDefinition
+
+logger = get_logger("pulseagent.llm")
 
 
 class LLMCallError(Exception):
@@ -35,10 +38,10 @@ class LLM:
         timeout: int | None = None,
         client: OpenAI | None = None,
     ):
-        self.model = model or os.getenv("LLM_MODEL_ID") or settings.llm_model_id
-        self.api_key = api_key or os.getenv("LLM_API_KEY") or settings.llm_api_key
-        self.base_url = base_url or os.getenv("LLM_BASE_URL") or settings.llm_base_url
-        self.timeout = timeout or int(os.getenv("LLM_TIMEOUT", str(settings.llm_timeout)))
+        self.model = model or agent_settings.llm_model_id
+        self.api_key = api_key or agent_settings.llm_api_key
+        self.base_url = base_url or agent_settings.llm_base_url
+        self.timeout = timeout or agent_settings.llm_timeout
 
         if client is not None:
             self.client = client
@@ -47,7 +50,7 @@ class LLM:
         if not all([self.model, self.api_key, self.base_url]):
             raise ValueError("模型ID、API密钥和服务地址必须被提供或在环境变量中定义。")
 
-        self.client = OpenAI(
+        self.client = get_openai_client(
             api_key=self.api_key,
             base_url=self.base_url,
             timeout=self.timeout,
@@ -80,6 +83,28 @@ class LLM:
         return self.client.chat.completions.create(**payload)
 
 
+def default_llm_config() -> LLMConfigResolved | None:
+    if not all([agent_settings.llm_api_key, agent_settings.llm_base_url, agent_settings.llm_model_id]):
+        return None
+
+    return LLMConfigResolved(
+        api_key=agent_settings.llm_api_key,
+        base_url=agent_settings.llm_base_url,
+        model_id=agent_settings.llm_model_id,
+        timeout=agent_settings.llm_timeout,
+    )
+
+
+@lru_cache(maxsize=8)
+def get_openai_client(api_key: str, base_url: str, timeout: int) -> OpenAI:
+    logger.info("create llm client base_url=%s timeout=%s", base_url, timeout)
+    return OpenAI(
+        api_key=api_key,
+        base_url=base_url,
+        timeout=timeout,
+    )
+
+
 def resolve_llm_config(
     incoming: LLMConfigResolved | None = None,
     *,
@@ -88,10 +113,12 @@ def resolve_llm_config(
     model_id: str | None = None,
     timeout: int | None = None,
 ) -> LLMConfigResolved | None:
-    merged_api_key = api_key or (incoming.api_key if incoming else None) or settings.llm_api_key
-    merged_base_url = base_url or (incoming.base_url if incoming else None) or settings.llm_base_url
-    merged_model_id = model_id or (incoming.model_id if incoming else None) or settings.llm_model_id
-    merged_timeout = timeout or (incoming.timeout if incoming else None) or settings.llm_timeout
+    defaults = default_llm_config()
+
+    merged_api_key = api_key or (incoming.api_key if incoming else None) or (defaults.api_key if defaults else None)
+    merged_base_url = base_url or (incoming.base_url if incoming else None) or (defaults.base_url if defaults else None)
+    merged_model_id = model_id or (incoming.model_id if incoming else None) or (defaults.model_id if defaults else None)
+    merged_timeout = timeout or (incoming.timeout if incoming else None) or (defaults.timeout if defaults else agent_settings.llm_timeout)
 
     if not all([merged_api_key, merged_base_url, merged_model_id]):
         return None
@@ -111,6 +138,7 @@ async def call_llm(
     allow_tools: bool = True,
 ) -> tuple[str, LLMReply]:
     if llm_config is None:
+        logger.warning("llm config missing, fallback to mock-local")
         return "mock-local", _mock_reply(messages, allow_tools)
 
     client = LLM(
@@ -120,6 +148,13 @@ async def call_llm(
         timeout=llm_config.timeout,
     )
     serialized_tools = _serialize_tools(tools or [])
+    logger.info(
+        "llm call start model=%s allow_tools=%s tool_count=%s message_count=%s",
+        llm_config.model_id,
+        allow_tools,
+        len(serialized_tools),
+        len(messages),
+    )
     try:
         response = await run_in_threadpool(
             client.complete,
@@ -129,27 +164,35 @@ async def call_llm(
             allow_tools=allow_tools,
         )
     except BadRequestError as error:
+        logger.warning("llm bad request model=%s detail=%s", llm_config.model_id, _format_bad_request_error(error))
         raise LLMCallError(_format_bad_request_error(error), status_code=400) from error
     except AuthenticationError as error:
+        logger.warning("llm authentication failed model=%s", llm_config.model_id)
         raise LLMCallError("模型调用失败：LLM_API_KEY 无效或已失效。请检查 backend/.env。", status_code=401) from error
     except PermissionDeniedError as error:
+        logger.warning("llm permission denied model=%s", llm_config.model_id)
         raise LLMCallError("模型调用失败：当前 key 没有权限访问这个模型或服务。", status_code=403) from error
     except RateLimitError as error:
+        logger.warning("llm rate limited model=%s", llm_config.model_id)
         raise LLMCallError("模型调用失败：请求过于频繁或额度不足。请稍后重试。", status_code=429) from error
     except APITimeoutError as error:
+        logger.warning("llm timeout model=%s timeout=%s", llm_config.model_id, llm_config.timeout)
         raise LLMCallError("模型调用超时。请稍后再试，或检查 LLM_TIMEOUT 设置。", status_code=504) from error
     except APIConnectionError as error:
+        logger.warning("llm connection failed model=%s base_url=%s", llm_config.model_id, llm_config.base_url)
         raise LLMCallError("模型连接失败。请检查 LLM_BASE_URL 和当前网络。", status_code=502) from error
     message = response.choices[0].message
     tool_calls = getattr(message, "tool_calls", None) or []
     if tool_calls:
         tool_call = tool_calls[0]
         tool_name = getattr(getattr(tool_call, "function", None), "name", None)
+        logger.info("llm call requested tool model=%s tool=%s", llm_config.model_id, tool_name)
         return llm_config.model_id, LLMReply(
             tool_name=tool_name,
             tool_call_id=getattr(tool_call, "id", None),
             raw=response.model_dump() if hasattr(response, "model_dump") else None,
         )
+    logger.info("llm call completed model=%s content_length=%s", llm_config.model_id, len(getattr(message, "content", "") or ""))
     return llm_config.model_id, LLMReply(
         content=getattr(message, "content", "") or "",
         raw=response.model_dump() if hasattr(response, "model_dump") else None,

@@ -2,6 +2,7 @@ from __future__ import annotations
 
 from fastapi import HTTPException
 
+from app.agent.config import agent_settings
 from app.agent.llm import resolve_llm_config
 from app.config import settings
 from app.memory.agent_profiles import resolve_agent_profile
@@ -46,12 +47,12 @@ def create_turn_runtime(
     policy = agent.to_runtime_policy()
     model_id = llm_config.model_id if llm_config else "mock-local"
     previous_messages = (
-        get_recent_messages(session.session_id, settings.session_message_window - 1)
+        get_recent_messages(session.session_id, agent_settings.message_window - 1)
         if get_session_optional(session.session_id)
         else []
     )
     current_message = ChatMessage(role=MessageRole.user, content=request.user_message)
-    recent_messages = [*previous_messages, current_message][-settings.session_message_window :]
+    recent_messages = [*previous_messages, current_message][-agent_settings.message_window :]
     enabled_tool_names = {item.name for item in get_runtime_tools(policy)}
     runtime_tools = [tool for tool in scaffold.tool_registry if tool.name in enabled_tool_names]
 

@@ -2,7 +2,9 @@ __pycache__/
 .DS_Store
 
 /backend/.venv/
+/backend/.env
 /backend/*.egg-info/
 /backend/*.db
 /backend/*.db-shm
 /backend/*.db-wal
+/backend/logs/

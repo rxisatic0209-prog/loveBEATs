@@ -66,78 +66,28 @@ class PersonaProfile(BaseModel):
 
 
 class RoleCardInput(BaseModel):
+    """
+    5-Field RoleCard Model
+    Contains only the essential fields for persona compilation:
+    - name: 角色名字
+    - background: 背景设定（关系 + 故事背景合并）
+    - trait_profile: 稳定人格特质
+    - attachment_style: 关系模式/依恋风格
+    - response_style: 回答风格
+    - user_nickname: 对用户的昵称（可选）
+    """
     name: str = Field(min_length=1, max_length=64)
-    user_nickname: str | None = Field(default=None, max_length=32)
-    relationship_setting: str | None = Field(default=None, max_length=300)
-    story_background: str | None = Field(default=None, max_length=600)
+    background: str | None = Field(default=None, max_length=1000)
     trait_profile: str | None = Field(default=None, max_length=300)
     attachment_style: str | None = Field(default=None, max_length=200)
-    processing_style: str | None = Field(default=None, max_length=300)
-    key_experiences: str | None = Field(default=None, max_length=500)
-    core_motivations: str | None = Field(default=None, max_length=300)
+    major_life_events: str | None = Field(default=None, max_length=500)
     response_style: str | None = Field(default=None, max_length=320)
-    response_tone: str | None = Field(default=None, max_length=200)
-    response_pacing: str | None = Field(default=None, max_length=120)
-    response_initiative: str | None = Field(default=None, max_length=120)
-    response_boundaries: str | None = Field(default=None, max_length=200)
-    personality: str | None = Field(default=None, max_length=300)
-    speaking_style: str | None = Field(default=None, max_length=200)
-    interaction_rules: str | None = Field(default=None, max_length=400)
-    taboos: list[str] = Field(default_factory=list, max_length=12)
-    keywords: list[str] = Field(default_factory=list, max_length=12)
+    user_nickname: str | None = Field(default=None, max_length=32)
 
-    @field_validator(
-        "name",
-        "user_nickname",
-        "relationship_setting",
-        "story_background",
-        "trait_profile",
-        "attachment_style",
-        "processing_style",
-        "key_experiences",
-        "core_motivations",
-        "response_style",
-        "response_tone",
-        "response_pacing",
-        "response_initiative",
-        "response_boundaries",
-        "personality",
-        "speaking_style",
-        "interaction_rules",
-    )
+    @field_validator("name", "background", "trait_profile", "attachment_style", "major_life_events", "response_style", "user_nickname")
     @classmethod
-    def strip_role_card_text(cls, value: str | None) -> str | None:
-        if value is None:
-            return None
-        stripped = value.strip()
-        return stripped or None
-
-    @field_validator("taboos", "keywords")
-    @classmethod
-    def normalize_role_card_list(cls, value: list[str]) -> list[str]:
-        normalized: list[str] = []
-        for item in value:
-            stripped = item.strip()
-            if stripped and stripped not in normalized:
-                normalized.append(stripped)
-        return normalized
-
-    @model_validator(mode="after")
-    def resolve_legacy_fields(self) -> "RoleCardInput":
-        if self.trait_profile is None and self.personality is not None:
-            self.trait_profile = self.personality
-        if self.response_style is None and self.speaking_style is not None:
-            self.response_style = self.speaking_style
-        if self.response_style is None:
-            response_parts = [self.response_tone, self.response_pacing, self.response_initiative]
-            merged_style = "；".join(part for part in response_parts if part)
-            if merged_style:
-                self.response_style = merged_style
-        if self.response_tone is None and self.response_style is not None:
-            self.response_tone = self.response_style
-        if self.response_tone is None and self.speaking_style is not None:
-            self.response_tone = self.speaking_style
-        return self
+    def strip_whitespace(cls, v: str | None) -> str | None:
+        return v.strip() if v else v
 
 
 class PersonaCompileRequest(BaseModel):
@@ -279,8 +229,6 @@ class AgentProfile(BaseModel):
 
 class AgentScaffold(BaseModel):
     base_system_prompt: str
-    safety_rules: list[str]
-    pipeline_steps: list[str]
     tool_registry: list[ToolDefinition]
 
 

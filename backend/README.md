@@ -33,13 +33,55 @@ Backend 现在按三层理解：
 
 `app/system/` 和 `app/tools/` 作为 agent 的子系统继续保留。
 
+配置现在也按职责拆开理解：
+
+- [app/config.py](/Users/rxie/Desktop/loveBEATs/backend/app/config.py)
+  backend / app 级配置，例如应用名、数据库、日志
+- [app/agent/config.py](/Users/rxie/Desktop/loveBEATs/backend/app/agent/config.py)
+  agent 级配置视图，例如默认 LLM 配置、消息窗口
+- [app/tools/config.py](/Users/rxie/Desktop/loveBEATs/backend/app/tools/config.py)
+  tool 级配置视图，例如心率 provider
+
 ## 直接体验
 
 - 启动服务：`make run`
+- 一键脚本：`bash /Users/rxie/Desktop/loveBEATs/backend/scripts/run_backend.sh`
+- 停止服务：`bash /Users/rxie/Desktop/loveBEATs/backend/scripts/stop_backend.sh`
 - 打开页面：`http://127.0.0.1:8000/chat`
 - 跑接口冒烟：`make smoke`
 - 跑 persona/agent 冒烟：`make smoke-persona-agent`
 - 跑测试：`make test`
+
+## 日志
+
+后端现在有基础日志系统，默认会同时输出到终端和日志文件：
+
+- 日志文件：[backend/logs/app.log](/Users/rxie/Desktop/loveBEATs/backend/logs/app.log)
+- 日志配置来源：[backend/.env.example](/Users/rxie/Desktop/loveBEATs/backend/.env.example)
+
+默认会记录：
+
+- 请求开始和结束
+- 请求方法、路径、状态码、耗时
+- LLM 调用开始、失败和降级到 `mock-local`
+- 心率 tool 调用
+- runtime 最终回复摘要
+- 未处理异常
+
+最直接的查看方式：
+
+- `tail -f /Users/rxie/Desktop/loveBEATs/backend/logs/app.log`
+
+可配置项：
+
+- `LOG_LEVEL`
+- `LOG_DIR`
+- `LOG_FILENAME`
+- `LOG_MAX_BYTES`
+- `LOG_BACKUP_COUNT`
+- `ROLE_MESSAGE_WINDOW`
+- `TOOL_CALL_TIMEOUT_SECONDS`
+- `HEART_RATE_TOOL_PROVIDER`
 
 ## 前端接法
 

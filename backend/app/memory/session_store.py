@@ -11,7 +11,7 @@ from app.db import get_connection
 from app.memory.agent_profiles import get_agent_profile
 from app.memory.persona_templates import get_persona_template
 from app.models import ChatMessage, LLMConfigResolved, MessageRole, PersonaProfile, RoleCardInput, SessionCreateRequest, SessionHistoryResponse, SessionState
-from app.system.persona import build_persona_from_role_card
+from app.system.persona import build_persona_from_role_card, compile_persona
 
 
 def utc_now() -> datetime:

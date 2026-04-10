@@ -1,12 +1,16 @@
+import time
+import uuid
 from pathlib import Path
 
-from fastapi import FastAPI, HTTPException
+from fastapi import FastAPI, HTTPException, Request
 from fastapi.responses import FileResponse, RedirectResponse
+from fastapi.responses import JSONResponse
 
 from app.agent.chat import handle_chat
 from app.agent.llm import LLMCallError
 from app.config import settings
 from app.db import init_db
+from app.logging_setup import get_logger, setup_logging
 from app.memory.agent_profiles import (
     build_default_agent_profile,
     create_agent_profile,
@@ -61,13 +65,54 @@ from app.system.persona import compile_persona
 from app.system.scaffold import build_agent_scaffold
 from app.tools.providers import get_heart_rate_provider_info
 
+setup_logging()
+logger = get_logger("pulseagent.api")
+
 app = FastAPI(title=settings.app_name)
 CHAT_PAGE_PATH = Path(__file__).resolve().parent / "static" / "chat.html"
+LOG_FILE_PATH = (Path(__file__).resolve().parent.parent / settings.log_dir / settings.log_filename).resolve()
 
 
 @app.on_event("startup")
 async def startup() -> None:
     init_db()
+    logger.info("startup complete")
+
+
+@app.middleware("http")
+async def log_requests(request: Request, call_next):
+    request_id = uuid.uuid4().hex[:8]
+    start = time.perf_counter()
+    logger.info("request start id=%s method=%s path=%s", request_id, request.method, request.url.path)
+    try:
+        response = await call_next(request)
+    except Exception:
+        duration_ms = round((time.perf_counter() - start) * 1000, 2)
+        logger.exception(
+            "request failed id=%s method=%s path=%s duration_ms=%s",
+            request_id,
+            request.method,
+            request.url.path,
+            duration_ms,
+        )
+        raise
+    duration_ms = round((time.perf_counter() - start) * 1000, 2)
+    logger.info(
+        "request end id=%s method=%s path=%s status=%s duration_ms=%s",
+        request_id,
+        request.method,
+        request.url.path,
+        response.status_code,
+        duration_ms,
+    )
+    response.headers["X-Request-ID"] = request_id
+    return response
+
+
+@app.exception_handler(Exception)
+async def unhandled_exception_handler(request: Request, exc: Exception):
+    logger.exception("unhandled exception path=%s", request.url.path)
+    return JSONResponse(status_code=500, content={"detail": "Internal Server Error"})
 
 
 @app.get("/health")
@@ -83,6 +128,24 @@ async def root() -> RedirectResponse:
 @app.get("/chat", include_in_schema=False)
 async def chat_page() -> FileResponse:
     return FileResponse(CHAT_PAGE_PATH)
+
+
+@app.get("/v1/debug/logs")
+async def debug_logs(lines: int = 120) -> dict:
+    safe_lines = max(10, min(lines, 400))
+    if not LOG_FILE_PATH.exists():
+        return {
+            "path": str(LOG_FILE_PATH),
+            "lines": [],
+            "line_count": 0,
+        }
+
+    content = LOG_FILE_PATH.read_text(encoding="utf-8", errors="replace").splitlines()
+    return {
+        "path": str(LOG_FILE_PATH),
+        "lines": content[-safe_lines:],
+        "line_count": len(content),
+    }
 
 
 @app.get("/v1/agent/scaffold", response_model=AgentScaffold)

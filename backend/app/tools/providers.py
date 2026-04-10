@@ -5,6 +5,7 @@ from dataclasses import dataclass
 from app.memory.heart_rate_store import get_latest_heart_rate
 from app.memory.session_store import get_app_user_id_for_session
 from app.models import HeartRateReading
+from app.tools.config import tool_settings
 
 
 @dataclass(frozen=True)
@@ -48,6 +49,8 @@ class LocalCacheHeartRateProvider(HeartRateToolProvider):
         )
 
 def get_heart_rate_provider() -> HeartRateToolProvider:
+    if tool_settings.heart_rate_tool_provider != "local_cache":
+        raise ValueError(f"unsupported heart-rate provider: {tool_settings.heart_rate_tool_provider}")
     return LocalCacheHeartRateProvider()
 
 

@@ -1,8 +1,11 @@
 from app.agent.llm import build_assistant_tool_call_message, build_tool_result_message, call_llm
+from app.logging_setup import get_logger
 from app.memory.session_store import append_message, get_session_llm_config, touch_session
 from app.models import ChatSendResponse, MessageRole, TurnRuntime
 from app.system.guardrails import build_runtime_context_prompt
 from app.tools.heart_rate import execute_get_heart_rate
+
+logger = get_logger("pulseagent.runtime")
 
 
 async def run_turn_runtime(runtime: TurnRuntime) -> ChatSendResponse:
@@ -37,6 +40,7 @@ async def run_turn_runtime(runtime: TurnRuntime) -> ChatSendResponse:
         and runtime.policy.heart_rate.max_call_per_turn > 0
     ):
         tool_used = True
+        logger.info("runtime tool call role_id=%s tool=get_heart_rate", runtime.role_id)
         heart_rate = execute_get_heart_rate(runtime.role_id)
         payload = heart_rate.model_dump(mode="json")
         payload["_tool_call_id"] = first_pass.tool_call_id or "mock_tool_call_id"
@@ -71,6 +75,13 @@ async def run_turn_runtime(runtime: TurnRuntime) -> ChatSendResponse:
 
     append_message(runtime.session_id, role=MessageRole.assistant, content=reply)
     touch_session(runtime.session_id)
+    logger.info(
+        "runtime reply role_id=%s model=%s tool_used=%s reply_length=%s",
+        runtime.role_id,
+        model_used,
+        tool_used,
+        len(reply),
+    )
 
     return ChatSendResponse(
         role_id=runtime.role_id,

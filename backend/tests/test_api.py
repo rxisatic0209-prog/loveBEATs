@@ -91,8 +91,8 @@ class PulseAgentAPITest(unittest.TestCase):
         self.assertEqual(data["prompt_messages"][0]["role"], "system")
         self.assertEqual(data["llm"]["source"], "mock-local")
         self.assertTrue(data["warnings"])
-        self.assertIn("括号、旁白、动作、神态、环境、沉默、心理活动，都视为场景信息", data["runtime"]["system_prompt"])
-        self.assertIn("可以自然加入动作、肢体反应、表情、视线、停顿、语气变化、环境细节", data["runtime"]["system_prompt"])
+        self.assertIn("严禁 OOC（Out Of Character）。必须始终贴合角色身份、语气、背景、经历进行表达。", data["runtime"]["system_prompt"])
+        self.assertIn("信息获取应遵循现实逻辑：只能知道通过合理途径获得的信息。", data["runtime"]["system_prompt"])
 
     def test_smoke_script_exists(self) -> None:
         script_path = Path("/Users/rxie/Desktop/loveBEATs/backend/scripts/smoke_test.py")
@@ -131,8 +131,9 @@ class PulseAgentAPITest(unittest.TestCase):
         data = response.json()
         self.assertIn("阿昼", data["compiled_prompt"])
         self.assertIn("宝宝", data["compiled_prompt"])
-        self.assertIn("表演要求：始终留在角色里说话", data["compiled_prompt"])
-        self.assertEqual(data["taboos"], ["不说教", "不冷暴力", "不训斥", "不做医学判断"])
+        self.assertIn("[角色身份]", data["compiled_prompt"])
+        self.assertIn("[扮演摘要]", data["compiled_prompt"])
+        self.assertEqual(data["taboos"], ["不说教", "不冷暴力", "不做医学判断", "不跳出角色", "不擅自改写设定"])
         self.assertEqual(data["lexicon"], ["笨蛋", "乖一点"])
         self.assertEqual(data["expression_level"], "偏高")
 
@@ -309,16 +310,11 @@ class PulseAgentAPITest(unittest.TestCase):
                 "role_card": {
                     "name": "阿昼",
                     "user_nickname": "宝宝",
-                    "relationship_setting": "你是用户的年上恋人，稳定克制。",
-                    "story_background": "你们已经相处很久，关系亲密自然。",
+                    "background": "你是用户的年上恋人，关系稳定克制，已经相处很久。",
                     "trait_profile": "温柔、稳定、慢热，会先理解情绪。",
                     "attachment_style": "安全型，亲近但不控制。",
-                    "processing_style": "先接住情绪，再整理表达，不放大冲突。",
-                    "key_experiences": "长期承担照顾者角色，对逞强和疲惫更敏感。",
-                    "core_motivations": "想维持稳定亲密关系，让对方有被接住的感觉。",
+                    "major_life_events": "长期承担照顾者角色，对逞强和疲惫更敏感。",
                     "response_style": "轻柔、自然、不要说教；先接住情绪，再自然延展；中等偏主动，会追问一点点。",
-                    "response_boundaries": "不做医生判断，不制造愧疚，不说教，不训斥。",
-                    "keywords": ["笨蛋", "乖一点"],
                 },
             },
         )
@@ -327,23 +323,19 @@ class PulseAgentAPITest(unittest.TestCase):
         self.assertTrue(role["role_id"].startswith("role_"))
         self.assertEqual(role["role_card"]["name"], "阿昼")
         self.assertEqual(role["role_card"]["trait_profile"], "温柔、稳定、慢热，会先理解情绪。")
+        self.assertEqual(role["role_card"]["major_life_events"], "长期承担照顾者角色，对逞强和疲惫更敏感。")
         self.assertEqual(
             role["role_card"]["response_style"],
             "轻柔、自然、不要说教；先接住情绪，再自然延展；中等偏主动，会追问一点点。",
         )
-        self.assertEqual(
-            role["role_card"]["response_boundaries"],
-            "不做医生判断，不制造愧疚，不说教，不训斥。",
-        )
-        self.assertEqual(role["role_card"]["keywords"], ["笨蛋", "乖一点"])
-        self.assertIn("故事背景", role["persona_text"])
+        self.assertIn("背景设定", role["persona_text"])
+        self.assertIn("角色个人重大事件", role["persona_text"])
         self.assertIn("回答风格", role["persona_text"])
-        self.assertIn("回答边界", role["persona_text"])
 
         get_response = self.client.get(f"/v1/roles/{role['role_id']}")
         self.assertEqual(get_response.status_code, 200)
         loaded = get_response.json()
-        self.assertEqual(loaded["role_card"]["relationship_setting"], "你是用户的年上恋人，稳定克制。")
+        self.assertEqual(loaded["role_card"]["background"], "你是用户的年上恋人，关系稳定克制，已经相处很久。")
 
     def test_role_card_creation_with_only_name_is_allowed(self) -> None:
         create_response = self.client.post(
@@ -357,10 +349,9 @@ class PulseAgentAPITest(unittest.TestCase):
         self.assertEqual(create_response.status_code, 200)
         role = create_response.json()
         self.assertEqual(role["role_card"]["name"], "阿昼")
-        self.assertIsNone(role["role_card"]["relationship_setting"])
-        self.assertIsNone(role["role_card"]["story_background"])
+        self.assertIsNone(role["role_card"]["background"])
         self.assertIsNone(role["role_card"]["trait_profile"])
-        self.assertIn("角色名是阿昼", role["persona_text"])
+        self.assertIn("角色名：阿昼", role["persona_text"])
 
     def test_chat_send_returns_readable_llm_error(self) -> None:
         role_response = self.client.post(

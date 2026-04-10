@@ -222,6 +222,13 @@
       font-size: 12px;
     }
 
+    .header-actions {
+      display: flex;
+      gap: 10px;
+      flex-wrap: wrap;
+      justify-content: flex-end;
+    }
+
     .messages {
       padding: 22px 24px;
       overflow: auto;
@@ -333,6 +340,86 @@
       justify-content: center;
     }
 
+    .log-panel {
+      position: fixed;
+      right: 24px;
+      bottom: 24px;
+      width: min(760px, calc(100vw - 48px));
+      height: min(420px, calc(100vh - 96px));
+      z-index: 40;
+      display: none;
+      flex-direction: column;
+      background: rgba(34, 26, 23, 0.96);
+      color: #f6ece3;
+      border-radius: 24px;
+      border: 1px solid rgba(255, 255, 255, 0.08);
+      box-shadow: 0 24px 60px rgba(30, 18, 14, 0.35);
+      overflow: hidden;
+    }
+
+    .log-panel.open {
+      display: flex;
+    }
+
+    .log-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      gap: 12px;
+      padding: 16px 18px;
+      border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+      background: rgba(255, 255, 255, 0.04);
+    }
+
+    .log-title {
+      display: flex;
+      flex-direction: column;
+      gap: 4px;
+      min-width: 0;
+    }
+
+    .log-title strong {
+      font-size: 16px;
+      color: #fff6ef;
+    }
+
+    .log-path {
+      font-size: 12px;
+      color: rgba(246, 236, 227, 0.7);
+      word-break: break-all;
+    }
+
+    .log-actions {
+      display: flex;
+      gap: 8px;
+      flex-wrap: wrap;
+      justify-content: flex-end;
+    }
+
+    .log-actions button {
+      padding: 9px 14px;
+      border-radius: 999px;
+      background: rgba(255, 255, 255, 0.08);
+      color: #fff6ef;
+      border: 1px solid rgba(255, 255, 255, 0.08);
+    }
+
+    .log-body {
+      flex: 1;
+      min-height: 0;
+      overflow: auto;
+      padding: 16px 18px 18px;
+      font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+      font-size: 12px;
+      line-height: 1.65;
+      white-space: pre-wrap;
+      word-break: break-word;
+    }
+
+    .log-empty {
+      color: rgba(246, 236, 227, 0.72);
+    }
+
     @keyframes rise {
       from {
         transform: translateY(6px);
@@ -398,13 +485,8 @@
         </div>
 
         <div class="field">
-          <label for="relationshipInput">关系设定</label>
-          <textarea id="relationshipInput" placeholder="比如：你是用户的年上恋人，稳定、克制、有照顾感。"></textarea>
-        </div>
-
-        <div class="field">
-          <label for="backgroundInput">故事背景</label>
-          <textarea id="backgroundInput" placeholder="比如：你们已经相处很久，关系自然亲密。"></textarea>
+          <label for="backgroundInput">背景设定（关系 + 故事背景）</label>
+          <textarea id="backgroundInput" placeholder="比如：你是用户的年上恋人，关系自然稳定，已经相处很久。"></textarea>
         </div>
 
         <div class="field">
@@ -418,33 +500,13 @@
         </div>
 
         <div class="field">
-          <label for="processingInput">情绪与认知加工方式</label>
-          <textarea id="processingInput" placeholder="比如：会先感受对方情绪，再整理语言；面对冲突时偏克制，不轻易升级。"></textarea>
-        </div>
-
-        <div class="field">
-          <label for="experienceInput">关键经历</label>
-          <textarea id="experienceInput" placeholder="比如：曾长期照顾家人，因此更敏感于他人的疲惫和脆弱。"></textarea>
-        </div>
-
-        <div class="field">
-          <label for="motivationInput">核心动机</label>
-          <input id="motivationInput" placeholder="比如：想维持稳定亲密关系，让对方有被接住的感觉">
+          <label for="majorLifeEventsInput">角色个人重大事件</label>
+          <textarea id="majorLifeEventsInput" placeholder="比如：曾经长期照顾家人，经历过一次很重要的分离，因此对失去和沉默更敏感。"></textarea>
         </div>
 
         <div class="field">
           <label for="responseStyleInput">回答风格</label>
           <textarea id="responseStyleInput" placeholder="比如：轻柔、自然、克制；先接住情绪再展开；中等偏主动，会追问一点但不过度逼近。"></textarea>
-        </div>
-
-        <div class="field">
-          <label for="responseBoundariesInput">回答边界</label>
-          <textarea id="responseBoundariesInput" placeholder="比如：不说教，不做医生判断，不制造愧疚，不冷处理用户情绪。"></textarea>
-        </div>
-
-        <div class="field">
-          <label for="keywordsInput">关键词/口头禅（用逗号分隔）</label>
-          <input id="keywordsInput" placeholder="比如：笨蛋，乖一点，别怕">
         </div>
 
         <div class="actions">
@@ -454,6 +516,16 @@
 
         <div class="hint">
           如果后端没接真实模型，聊天会显示 <code>mock-local</code>，那只是链路通，不是真对话质量。
+        </div>
+
+        <div class="section-title">开发工具</div>
+        <div class="hint" id="backendHealthHint">
+          后端状态：检测中…
+        </div>
+        <div class="actions">
+          <button class="secondary" id="copyRunCommandButton" type="button">复制启动命令</button>
+          <button class="secondary" id="copyStopCommandButton" type="button">复制停止命令</button>
+          <button class="secondary" id="checkBackendButton" type="button">重新检测</button>
         </div>
       </div>
     </aside>
@@ -468,7 +540,10 @@
             <span class="pill" id="modelPill">Model: 未发送</span>
           </div>
         </div>
-        <button class="secondary" id="loadHistoryButton">加载历史</button>
+        <div class="header-actions">
+          <button class="secondary" id="openLogsButton" type="button">查看日志</button>
+          <button class="secondary" id="loadHistoryButton" type="button">加载历史</button>
+        </div>
       </div>
 
       <div class="messages" id="messages">
@@ -490,12 +565,30 @@
 
   <button class="secondary keyboard-dismiss" id="dismissKeyboardButton" type="button">收起键盘</button>
 
+  <section class="log-panel" id="logPanel">
+    <div class="log-header">
+      <div class="log-title">
+        <strong>后台日志</strong>
+        <div class="log-path" id="logPath">尚未加载</div>
+      </div>
+      <div class="log-actions">
+        <button type="button" id="refreshLogsButton">刷新</button>
+        <button type="button" id="closeLogsButton">关闭</button>
+      </div>
+    </div>
+    <div class="log-body" id="logBody">
+      <div class="log-empty">还没有加载日志。</div>
+    </div>
+  </section>
+
   <script>
     const state = {
       personas: [],
       roles: [],
       activeRole: null,
       isBusy: false,
+      logPanelOpen: false,
+      logRefreshTimer: null,
     };
 
     const el = {
@@ -506,22 +599,27 @@
       personaSelect: document.getElementById("personaSelect"),
       roleNameInput: document.getElementById("roleNameInput"),
       userNicknameInput: document.getElementById("userNicknameInput"),
-      relationshipInput: document.getElementById("relationshipInput"),
       backgroundInput: document.getElementById("backgroundInput"),
       traitInput: document.getElementById("traitInput"),
       attachmentInput: document.getElementById("attachmentInput"),
-      processingInput: document.getElementById("processingInput"),
-      experienceInput: document.getElementById("experienceInput"),
-      motivationInput: document.getElementById("motivationInput"),
+      majorLifeEventsInput: document.getElementById("majorLifeEventsInput"),
       responseStyleInput: document.getElementById("responseStyleInput"),
-      responseBoundariesInput: document.getElementById("responseBoundariesInput"),
-      keywordsInput: document.getElementById("keywordsInput"),
       createSessionButton: document.getElementById("createSessionButton"),
       reloadConfigButton: document.getElementById("reloadConfigButton"),
+      backendHealthHint: document.getElementById("backendHealthHint"),
+      copyRunCommandButton: document.getElementById("copyRunCommandButton"),
+      copyStopCommandButton: document.getElementById("copyStopCommandButton"),
+      checkBackendButton: document.getElementById("checkBackendButton"),
       loadHistoryButton: document.getElementById("loadHistoryButton"),
+      openLogsButton: document.getElementById("openLogsButton"),
       chatHeading: document.getElementById("chatHeading"),
       personaPill: document.getElementById("personaPill"),
       modelPill: document.getElementById("modelPill"),
+      logPanel: document.getElementById("logPanel"),
+      logPath: document.getElementById("logPath"),
+      logBody: document.getElementById("logBody"),
+      refreshLogsButton: document.getElementById("refreshLogsButton"),
+      closeLogsButton: document.getElementById("closeLogsButton"),
       messages: document.getElementById("messages"),
       emptyState: document.getElementById("emptyState"),
       statusText: document.getElementById("statusText"),
@@ -529,6 +627,9 @@
       sendButton: document.getElementById("sendButton"),
       dismissKeyboardButton: document.getElementById("dismissKeyboardButton"),
     };
+
+    const RUN_COMMAND = "bash /Users/rxie/Desktop/loveBEATs/backend/scripts/run_backend.sh";
+    const STOP_COMMAND = "bash /Users/rxie/Desktop/loveBEATs/backend/scripts/stop_backend.sh";
 
     function isEditableField(target) {
       return target instanceof HTMLElement
@@ -558,47 +659,32 @@
       return {
         roleName: "阿昼",
         userNickname: "宝宝",
-        relationship: "你是用户的亲密恋爱对象，关系自然稳定。",
-        background: "你们已经相处很久，关系亲密自然。",
+        background: "你是用户的亲密恋爱对象。你们已经相处很久，关系亲密自然、稳定舒适。",
         trait: "温柔、稳定、慢热，会先理解情绪，也会稳稳接住对方。",
         attachment: "安全型，亲近但不控制，能稳定回应亲密关系中的不安。",
-        processing: "会先感受和整理对方情绪，再表达自己；遇到波动时偏克制，不放大冲突。",
-        experience: "曾长期承担照顾者角色，所以对疲惫、委屈和逞强很敏感。",
-        motivation: "想维持稳定亲密关系，让用户感到被理解、被偏爱、被接住。",
+        majorLifeEvents: "曾经经历过重要关系的失去，因此对离开、沉默和迟疑会更敏感，但不会失控。",
         responseStyle: "轻柔、自然、克制；先接住情绪再展开；中等偏主动，会追问一点但不过度逼近。",
-        responseBoundaries: "不说教，不做医学判断，不用愧疚感控制用户，不冷暴力。",
-        keywords: "笨蛋，乖一点",
       };
     }
 
     function applyRoleCardValues(values) {
       el.roleNameInput.value = values.roleName || "";
       el.userNicknameInput.value = values.userNickname || "";
-      el.relationshipInput.value = values.relationship || "";
       el.backgroundInput.value = values.background || "";
       el.traitInput.value = values.trait || "";
       el.attachmentInput.value = values.attachment || "";
-      el.processingInput.value = values.processing || "";
-      el.experienceInput.value = values.experience || "";
-      el.motivationInput.value = values.motivation || "";
+      el.majorLifeEventsInput.value = values.majorLifeEvents || "";
       el.responseStyleInput.value = values.responseStyle || "";
-      el.responseBoundariesInput.value = values.responseBoundaries || "";
-      el.keywordsInput.value = values.keywords || "";
     }
 
     function setPersonaFormMode(isSavedPersona) {
       el.roleNameInput.disabled = isSavedPersona;
       el.userNicknameInput.disabled = isSavedPersona;
-      el.relationshipInput.disabled = isSavedPersona;
       el.backgroundInput.disabled = isSavedPersona;
       el.traitInput.disabled = isSavedPersona;
       el.attachmentInput.disabled = isSavedPersona;
-      el.processingInput.disabled = isSavedPersona;
-      el.experienceInput.disabled = isSavedPersona;
-      el.motivationInput.disabled = isSavedPersona;
+      el.majorLifeEventsInput.disabled = isSavedPersona;
       el.responseStyleInput.disabled = isSavedPersona;
-      el.responseBoundariesInput.disabled = isSavedPersona;
-      el.keywordsInput.disabled = isSavedPersona;
     }
 
     function fillFormForRole(role) {
@@ -608,16 +694,11 @@
         applyRoleCardValues({
           roleName: role.role_card.name,
           userNickname: role.role_card.user_nickname || "",
-          relationship: role.role_card.relationship_setting || "",
-          background: role.role_card.story_background || "",
+          background: role.role_card.background || "",
           trait: role.role_card.trait_profile || "",
           attachment: role.role_card.attachment_style || "",
-          processing: role.role_card.processing_style || "",
-          experience: role.role_card.key_experiences || "",
-          motivation: role.role_card.core_motivations || "",
+          majorLifeEvents: role.role_card.major_life_events || "",
           responseStyle: role.role_card.response_style || "",
-          responseBoundaries: role.role_card.response_boundaries || "",
-          keywords: (role.role_card.keywords || []).join("，"),
         });
         return;
       }
@@ -666,6 +747,68 @@
     function setStatus(text, kind = "normal") {
       el.statusText.textContent = text;
       el.statusText.className = kind === "error" ? "status error" : "status";
+    }
+
+    function setBackendHealth(text, kind = "normal") {
+      el.backendHealthHint.textContent = text;
+      el.backendHealthHint.className = kind === "error" ? "hint status error" : "hint";
+    }
+
+    function renderLogs(payload) {
+      el.logPath.textContent = payload.path || "未知日志文件";
+      if (!payload.lines.length) {
+        el.logBody.innerHTML = '<div class="log-empty">日志文件还没有内容。</div>';
+        return;
+      }
+      el.logBody.textContent = payload.lines.join("\n");
+      el.logBody.scrollTop = el.logBody.scrollHeight;
+    }
+
+    async function loadLogs() {
+      const payload = await request("/v1/debug/logs?lines=160");
+      renderLogs(payload);
+    }
+
+    async function openLogsPanel() {
+      state.logPanelOpen = true;
+      el.logPanel.classList.add("open");
+      await loadLogs();
+      clearInterval(state.logRefreshTimer);
+      state.logRefreshTimer = window.setInterval(() => {
+        if (state.logPanelOpen) {
+          loadLogs().catch(() => {});
+        }
+      }, 3000);
+    }
+
+    function closeLogsPanel() {
+      state.logPanelOpen = false;
+      el.logPanel.classList.remove("open");
+      clearInterval(state.logRefreshTimer);
+      state.logRefreshTimer = null;
+    }
+
+    async function checkBackendHealth() {
+      try {
+        const response = await fetch("/health", { cache: "no-store" });
+        if (!response.ok) {
+          throw new Error(`${response.status} ${response.statusText}`);
+        }
+        const payload = await response.json();
+        setBackendHealth(`后端状态：运行中（${payload.app}）`);
+      } catch (error) {
+        setBackendHealth(`后端状态：不可用，请先手动启动后端。${error?.message ? `（${error.message}）` : ""}`, "error");
+      }
+    }
+
+    async function copyRunCommand() {
+      await navigator.clipboard.writeText(RUN_COMMAND);
+      setStatus("后端启动命令已复制。");
+    }
+
+    async function copyStopCommand() {
+      await navigator.clipboard.writeText(STOP_COMMAND);
+      setStatus("后端停止命令已复制。");
     }
 
     async function request(path, options = {}) {
@@ -768,17 +911,12 @@
       const personaId = el.personaSelect.value || null;
       const roleCard = personaId ? null : {
         name: el.roleNameInput.value.trim(),
-        user_nickname: el.userNicknameInput.value.trim() || null,
-        relationship_setting: el.relationshipInput.value.trim() || null,
-        story_background: el.backgroundInput.value.trim() || null,
+        background: el.backgroundInput.value.trim() || null,
         trait_profile: el.traitInput.value.trim() || null,
         attachment_style: el.attachmentInput.value.trim() || null,
-        processing_style: el.processingInput.value.trim() || null,
-        key_experiences: el.experienceInput.value.trim() || null,
-        core_motivations: el.motivationInput.value.trim() || null,
+        major_life_events: el.majorLifeEventsInput.value.trim() || null,
         response_style: el.responseStyleInput.value.trim() || null,
-        response_boundaries: el.responseBoundariesInput.value.trim() || null,
-        keywords: splitListInput(el.keywordsInput.value),
+        user_nickname: el.userNicknameInput.value.trim() || null,
       };
       if (!personaId && !roleCard.name) {
         throw new Error("请至少填写角色名，或者直接选择一个已保存 persona。");
@@ -887,16 +1025,11 @@
         if (selected) {
           el.roleNameInput.value = selected.persona_profile?.display_name || "";
           el.userNicknameInput.value = selected.persona_profile?.user_nickname || "";
-          el.relationshipInput.value = selected.persona_profile?.relation_mode || "";
           el.backgroundInput.value = selected.persona_text || "";
           el.traitInput.value = selected.persona_text || "";
           el.attachmentInput.value = selected.persona_profile?.affection_style || "";
-          el.processingInput.value = selected.persona_profile?.comfort_hint || "";
-          el.experienceInput.value = "";
-          el.motivationInput.value = "";
+          el.majorLifeEventsInput.value = "";
           el.responseStyleInput.value = selected.persona_profile?.tone_hint || "";
-          el.responseBoundariesInput.value = (selected.persona_profile?.taboo_list || []).join("，");
-          el.keywordsInput.value = (selected.persona_profile?.lexicon_list || []).join("，");
         }
       } else {
         applyRoleCardValues(defaultRoleCardValues());
@@ -972,6 +1105,46 @@
       }
     });
 
+    el.openLogsButton.addEventListener("click", async () => {
+      try {
+        await openLogsPanel();
+      } catch (error) {
+        setStatus(error.message, "error");
+      }
+    });
+
+    el.refreshLogsButton.addEventListener("click", async () => {
+      try {
+        await loadLogs();
+      } catch (error) {
+        setStatus(error.message, "error");
+      }
+    });
+
+    el.closeLogsButton.addEventListener("click", () => {
+      closeLogsPanel();
+    });
+
+    el.copyRunCommandButton.addEventListener("click", async () => {
+      try {
+        await copyRunCommand();
+      } catch (error) {
+        setStatus(`复制失败：${error.message}`, "error");
+      }
+    });
+
+    el.copyStopCommandButton.addEventListener("click", async () => {
+      try {
+        await copyStopCommand();
+      } catch (error) {
+        setStatus(`复制失败：${error.message}`, "error");
+      }
+    });
+
+    el.checkBackendButton.addEventListener("click", async () => {
+      await checkBackendHealth();
+    });
+
     el.sendButton.addEventListener("click", async () => {
       try {
         setBusy(true);
@@ -995,6 +1168,12 @@
       window.setTimeout(syncKeyboardState, 0);
     });
 
+    document.addEventListener("keydown", (event) => {
+      if (event.key === "Escape" && state.logPanelOpen) {
+        closeLogsPanel();
+      }
+    });
+
     el.dismissKeyboardButton.addEventListener("click", dismissKeyboard);
 
     async function init() {
@@ -1002,6 +1181,7 @@
       updateHeader(null);
       setBusy(true);
       try {
+        await checkBackendHealth();
         await loadConfig();
         if (state.roles.length > 0) {
           setStatus("准备好了。你可以打开已有角色继续聊，或者新建一个角色。");
