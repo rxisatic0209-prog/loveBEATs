@@ -1,6 +1,6 @@
 from app.agent.llm import build_assistant_tool_call_message, build_tool_result_message, call_llm
 from app.logging_setup import get_logger
-from app.memory.session_store import append_message, get_session_llm_config, touch_session
+from app.memory.role_store import append_role_message, get_role_llm_config, touch_role
 from app.models import ChatSendResponse, MessageRole, TurnRuntime
 from app.system.guardrails import build_runtime_context_prompt
 from app.tools.heart_rate import execute_get_heart_rate
@@ -9,8 +9,8 @@ logger = get_logger("pulseagent.runtime")
 
 
 async def run_turn_runtime(runtime: TurnRuntime) -> ChatSendResponse:
-    llm_config = get_session_llm_config(runtime.session_id)
-    append_message(runtime.session_id, role=MessageRole.user, content=runtime.current_user_message)
+    llm_config = get_role_llm_config(runtime.role_id)
+    append_role_message(runtime.role_id, role=MessageRole.user, content=runtime.current_user_message)
 
     messages = [{"role": "system", "content": runtime.system_prompt}]
     messages.append(
@@ -73,8 +73,8 @@ async def run_turn_runtime(runtime: TurnRuntime) -> ChatSendResponse:
     if heart_rate and heart_rate.status.value not in {"fresh", "recent"}:
         heart_rate = None
 
-    append_message(runtime.session_id, role=MessageRole.assistant, content=reply)
-    touch_session(runtime.session_id)
+    append_role_message(runtime.role_id, role=MessageRole.assistant, content=reply)
+    touch_role(runtime.role_id)
     logger.info(
         "runtime reply role_id=%s model=%s tool_used=%s reply_length=%s",
         runtime.role_id,
@@ -86,7 +86,6 @@ async def run_turn_runtime(runtime: TurnRuntime) -> ChatSendResponse:
     return ChatSendResponse(
         role_id=runtime.role_id,
         app_user_id=runtime.app_user_id,
-        session_id=runtime.session_id,
         model_used=model_used,
         tool_used=tool_used,
         heart_rate=heart_rate,

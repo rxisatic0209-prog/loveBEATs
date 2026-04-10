@@ -35,7 +35,6 @@ from app.memory.persona_templates import (
     update_persona_template,
 )
 from app.memory.role_store import create_or_update_role, delete_role, get_role, get_role_history, list_role_messages, list_roles
-from app.memory.session_store import create_or_update_session, get_history, get_session, list_messages
 from app.models import (
     AgentScaffold,
     AgentProfile,
@@ -54,9 +53,6 @@ from app.models import (
     RoleCreateRequest,
     RoleHistoryResponse,
     RoleState,
-    SessionCreateRequest,
-    SessionHistoryResponse,
-    SessionState,
     TurnDebugSnapshot,
     TurnRuntime,
 )
@@ -231,11 +227,6 @@ async def agent_delete(agent_id: str) -> dict:
     return {"ok": True}
 
 
-@app.post("/v1/sessions", response_model=SessionState)
-async def session_create(request: SessionCreateRequest) -> SessionState:
-    return create_or_update_session(request)
-
-
 @app.post("/v1/roles", response_model=RoleState)
 async def role_create(request: RoleCreateRequest) -> RoleState:
     return create_or_update_role(request)
@@ -265,21 +256,6 @@ async def role_messages_list(role_id: str) -> list[ChatMessage]:
 async def role_delete(role_id: str) -> dict:
     delete_role(role_id)
     return {"ok": True}
-
-
-@app.get("/v1/sessions/{session_id}", response_model=SessionState)
-async def session_get(session_id: str) -> SessionState:
-    return get_session(session_id)
-
-
-@app.get("/v1/sessions/{session_id}/history", response_model=SessionHistoryResponse)
-async def session_history(session_id: str) -> SessionHistoryResponse:
-    return get_history(session_id)
-
-
-@app.get("/v1/sessions/{session_id}/messages", response_model=list[ChatMessage])
-async def session_messages_list(session_id: str) -> list[ChatMessage]:
-    return list_messages(session_id)
 
 
 @app.post("/v1/heart-rate/latest")

@@ -1,4 +1,5 @@
 import unittest
+from tempfile import TemporaryDirectory
 from pathlib import Path
 from unittest.mock import AsyncMock, patch
 
@@ -18,6 +19,9 @@ class PulseAgentAPITest(unittest.TestCase):
             settings.llm_model_id,
             settings.llm_timeout,
         )
+        self._original_sqlite_path = settings.sqlite_path
+        self._temp_dir = TemporaryDirectory()
+        settings.sqlite_path = str(Path(self._temp_dir.name) / "pulseagent.test.db")
         settings.llm_api_key = None
         settings.llm_base_url = None
         settings.llm_model_id = None
@@ -32,6 +36,8 @@ class PulseAgentAPITest(unittest.TestCase):
             settings.llm_model_id,
             settings.llm_timeout,
         ) = self._original_llm_settings
+        settings.sqlite_path = self._original_sqlite_path
+        self._temp_dir.cleanup()
 
     def test_agent_scaffold_endpoint(self) -> None:
         response = self.client.get("/v1/agent/scaffold")
@@ -59,7 +65,7 @@ class PulseAgentAPITest(unittest.TestCase):
         preview_response = self.client.post(
             "/v1/turns/preview",
             json={
-                "session_id": "s_preview",
+                "role_id": "role_preview",
                 "profile_id": "p_preview",
                 "persona_text": "像恋人一样聊天，温柔一点。",
                 "user_message": "你在想我吗？",
@@ -71,14 +77,14 @@ class PulseAgentAPITest(unittest.TestCase):
         self.assertEqual(preview["current_user_message"], "你在想我吗？")
         self.assertEqual(preview["recent_messages"][-1]["role"], "user")
 
-        session_response = self.client.get("/v1/sessions/s_preview")
-        self.assertEqual(session_response.status_code, 404)
+        role_response = self.client.get("/v1/roles/role_preview")
+        self.assertEqual(role_response.status_code, 404)
 
     def test_turn_debug_returns_prompt_and_warnings(self) -> None:
         debug_response = self.client.post(
             "/v1/turns/debug",
             json={
-                "session_id": "s_debug",
+                "role_id": "role_debug",
                 "profile_id": "p_debug",
                 "persona_text": "像恋人一样聊天，温柔一点。",
                 "user_message": "我有点想你。",
@@ -198,7 +204,7 @@ class PulseAgentAPITest(unittest.TestCase):
         preview_response = self.client.post(
             "/v1/turns/preview",
             json={
-                "session_id": "s_agent_preview",
+                "role_id": "role_agent_preview",
                 "profile_id": "p_agent_preview",
                 "persona_id": persona_id,
                 "agent_id": agent["agent_id"],
@@ -213,7 +219,7 @@ class PulseAgentAPITest(unittest.TestCase):
         self.assertEqual(preview["tools"], [])
         self.assertIn("更日常、更轻的关系表达", preview["system_prompt"])
 
-    def test_session_can_bind_persona_and_agent(self) -> None:
+    def test_role_can_bind_persona_and_agent(self) -> None:
         persona_response = self.client.post(
             "/v1/personas",
             json={
@@ -232,19 +238,19 @@ class PulseAgentAPITest(unittest.TestCase):
         )
 
         create_response = self.client.post(
-            "/v1/sessions",
+            "/v1/roles",
             json={
-                "session_id": "s_bound",
+                "role_id": "role_bound",
                 "profile_id": "p_bound",
                 "persona_id": persona_response.json()["persona_id"],
                 "agent_id": agent_response.json()["agent_id"],
             },
         )
         self.assertEqual(create_response.status_code, 200)
-        session = create_response.json()
-        self.assertEqual(session["persona_id"], persona_response.json()["persona_id"])
-        self.assertEqual(session["agent_id"], agent_response.json()["agent_id"])
-        self.assertEqual(session["persona_text"], "像恋人一样聊天，夜里更安静一点。")
+        role = create_response.json()
+        self.assertEqual(role["persona_id"], persona_response.json()["persona_id"])
+        self.assertEqual(role["agent_id"], agent_response.json()["agent_id"])
+        self.assertEqual(role["persona_text"], "像恋人一样聊天，夜里更安静一点。")
 
     def test_role_lifecycle_uses_role_id_as_memory_boundary(self) -> None:
         create_response = self.client.post(
@@ -270,7 +276,6 @@ class PulseAgentAPITest(unittest.TestCase):
         self.assertEqual(chat_response.status_code, 200)
         data = chat_response.json()
         self.assertEqual(data["role_id"], "role_001")
-        self.assertEqual(data["session_id"], "role_001")
 
         history_response = self.client.get("/v1/roles/role_001/history")
         self.assertEqual(history_response.status_code, 200)
@@ -448,11 +453,11 @@ class PulseAgentAPITest(unittest.TestCase):
         self.assertEqual(data["heart_rate"]["app_user_id"], "app_user_alex")
         self.assertEqual(data["heart_rate"]["bpm"], 91)
 
-    def test_session_lifecycle_and_chat(self) -> None:
+    def test_role_lifecycle_and_chat(self) -> None:
         create_response = self.client.post(
-            "/v1/sessions",
+            "/v1/roles",
             json={
-                "session_id": "s_001",
+                "role_id": "role_heart_001",
                 "profile_id": "p_001",
                 "title": "默认恋人",
                 "persona_text": "像恋人一样聊天，温柔一点，可以接住情绪。",
@@ -470,8 +475,7 @@ class PulseAgentAPITest(unittest.TestCase):
         chat_response = self.client.post(
             "/v1/chat/send",
             json={
-                "session_id": "s_001",
-                "profile_id": "p_001",
+                "role_id": "role_heart_001",
                 "user_message": "我刚刚有点紧张，心跳好快。",
                 "idle_seconds": 42,
             },
@@ -482,18 +486,18 @@ class PulseAgentAPITest(unittest.TestCase):
         self.assertEqual(data["heart_rate"]["status"], "fresh")
         self.assertIn("占位回复", data["reply"])
 
-        history_response = self.client.get("/v1/sessions/s_001/history")
+        history_response = self.client.get("/v1/roles/role_heart_001/history")
         self.assertEqual(history_response.status_code, 200)
         history = history_response.json()
         self.assertEqual(len(history["messages"]), 2)
         self.assertEqual(history["messages"][0]["role"], "user")
         self.assertEqual(history["messages"][1]["role"], "assistant")
 
-    def test_session_accepts_user_llm_config(self) -> None:
+    def test_role_does_not_persist_user_llm_config(self) -> None:
         response = self.client.post(
-            "/v1/sessions",
+            "/v1/roles",
             json={
-                "session_id": "s_003",
+                "role_id": "role_llm_003",
                 "profile_id": "p_003",
                 "title": "用户自填模型",
                 "persona_text": "像恋人一样聊天。",
@@ -506,15 +510,15 @@ class PulseAgentAPITest(unittest.TestCase):
         )
         self.assertEqual(response.status_code, 200)
         data = response.json()
-        self.assertEqual(data["llm_model_id"], "coding-glm-5-free")
-        self.assertEqual(data["llm_base_url"], "https://aihubmix.com/v1")
-        self.assertTrue(data["has_llm_api_key"])
+        self.assertIsNone(data["llm_model_id"])
+        self.assertIsNone(data["llm_base_url"])
+        self.assertFalse(data["has_llm_api_key"])
 
     def test_sqlite_persists_across_clients(self) -> None:
         self.client.post(
-            "/v1/sessions",
+            "/v1/roles",
             json={
-                "session_id": "s_004",
+                "role_id": "role_persist_004",
                 "profile_id": "p_004",
                 "persona_text": "像恋人一样聊天，安静一点。",
             },
@@ -522,24 +526,23 @@ class PulseAgentAPITest(unittest.TestCase):
         self.client.post(
             "/v1/chat/send",
             json={
-                "session_id": "s_004",
-                "profile_id": "p_004",
+                "role_id": "role_persist_004",
                 "user_message": "你还在吗？",
             },
         )
 
         second_client = TestClient(app)
-        history_response = second_client.get("/v1/sessions/s_004/history")
+        history_response = second_client.get("/v1/roles/role_persist_004/history")
         self.assertEqual(history_response.status_code, 200)
         history = history_response.json()
-        self.assertEqual(history["session"]["session_id"], "s_004")
+        self.assertEqual(history["role"]["role_id"], "role_persist_004")
         self.assertEqual(len(history["messages"]), 2)
 
-    def test_updating_persona_clears_session_memory(self) -> None:
+    def test_updating_persona_clears_role_memory(self) -> None:
         self.client.post(
-            "/v1/sessions",
+            "/v1/roles",
             json={
-                "session_id": "s_reset",
+                "role_id": "role_reset",
                 "profile_id": "p_reset",
                 "persona_text": "像恋人一样聊天，温柔一点。",
             },
@@ -547,32 +550,31 @@ class PulseAgentAPITest(unittest.TestCase):
         self.client.post(
             "/v1/chat/send",
             json={
-                "session_id": "s_reset",
-                "profile_id": "p_reset",
+                "role_id": "role_reset",
                 "user_message": "第一段记忆",
             },
         )
 
         update_response = self.client.post(
-            "/v1/sessions",
+            "/v1/roles",
             json={
-                "session_id": "s_reset",
+                "role_id": "role_reset",
                 "profile_id": "p_reset",
                 "persona_text": "你现在是另一张新角色卡，语气更冷静。",
             },
         )
         self.assertEqual(update_response.status_code, 200)
 
-        history_response = self.client.get("/v1/sessions/s_reset/history")
+        history_response = self.client.get("/v1/roles/role_reset/history")
         self.assertEqual(history_response.status_code, 200)
         history = history_response.json()
         self.assertEqual(history["messages"], [])
 
-    def test_new_session_requires_persona(self) -> None:
+    def test_new_role_requires_persona(self) -> None:
         response = self.client.post(
             "/v1/chat/send",
             json={
-                "session_id": "s_002",
+                "role_id": "role_002",
                 "profile_id": "p_002",
                 "user_message": "你好。",
             },

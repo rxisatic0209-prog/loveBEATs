@@ -3,7 +3,7 @@ from __future__ import annotations
 from dataclasses import dataclass
 
 from app.memory.heart_rate_store import get_latest_heart_rate
-from app.memory.session_store import get_app_user_id_for_session
+from app.memory.role_store import get_app_user_id_for_role
 from app.models import HeartRateReading
 from app.tools.config import tool_settings
 
@@ -34,7 +34,7 @@ class LocalCacheHeartRateProvider(HeartRateToolProvider):
     transport = "internal"
 
     def get_latest(self, role_id: str) -> HeartRateReading:
-        app_user_id = get_app_user_id_for_session(role_id)
+        app_user_id = get_app_user_id_for_role(role_id)
         reading = get_latest_heart_rate(app_user_id)
         return reading.model_copy(update={"role_id": role_id, "app_user_id": app_user_id, "profile_id": app_user_id})
 

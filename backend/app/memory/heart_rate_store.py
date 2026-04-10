@@ -6,7 +6,6 @@ from fastapi import HTTPException
 
 from app.db import get_connection
 from app.models import HeartRateReading, HeartRateStatus
-from app.memory.session_store import get_app_user_id_for_session, get_session_optional
 
 
 def _age_seconds(timestamp: datetime | None) -> int | None:
@@ -80,11 +79,13 @@ def get_latest_heart_rate(app_user_id: str) -> HeartRateReading:
 
 
 def append_role_heart_rate(role_id: str, bpm: int, timestamp: datetime | None) -> HeartRateReading:
-    session = get_session_optional(role_id)
-    if session is None:
+    from app.memory.role_store import get_role_optional
+
+    role = get_role_optional(role_id)
+    if role is None:
         raise HTTPException(status_code=404, detail="role not found")
 
-    app_user_id = session.app_user_id or session.profile_id
+    app_user_id = role.app_user_id
     reading_time = timestamp or datetime.now(timezone.utc)
     reading = upsert_heart_rate(app_user_id, bpm, reading_time)
     created_at = datetime.now(timezone.utc)
@@ -110,7 +111,9 @@ def append_role_heart_rate(role_id: str, bpm: int, timestamp: datetime | None) -
 
 
 def get_latest_role_heart_rate(role_id: str) -> HeartRateReading:
-    app_user_id = get_app_user_id_for_session(role_id)
+    from app.memory.role_store import get_app_user_id_for_role
+
+    app_user_id = get_app_user_id_for_role(role_id)
     with get_connection() as conn:
         row = conn.execute(
             "SELECT bpm, timestamp FROM role_heart_rate_latest WHERE role_id = ?",
@@ -132,7 +135,9 @@ def get_latest_role_heart_rate(role_id: str) -> HeartRateReading:
 
 
 def list_role_heart_rate_events(role_id: str) -> list[HeartRateReading]:
-    app_user_id = get_app_user_id_for_session(role_id)
+    from app.memory.role_store import get_app_user_id_for_role
+
+    app_user_id = get_app_user_id_for_role(role_id)
     with get_connection() as conn:
         rows = conn.execute(
             """

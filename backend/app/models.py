@@ -91,14 +91,14 @@ class RoleCardInput(BaseModel):
 
 
 class PersonaCompileRequest(BaseModel):
-    persona_text: str = Field(min_length=1, max_length=400)
+    persona_text: str = Field(min_length=1, max_length=4000)
     persona_profile: PersonaProfile | None = None
 
 
 class PersonaTemplateCreateRequest(BaseModel):
     name: str = Field(min_length=1, max_length=80)
     description: str | None = Field(default=None, max_length=240)
-    persona_text: str = Field(min_length=1, max_length=400)
+    persona_text: str = Field(min_length=1, max_length=4000)
     persona_profile: PersonaProfile | None = None
 
     @field_validator("name", "description", "persona_text")
@@ -113,7 +113,7 @@ class PersonaTemplateCreateRequest(BaseModel):
 class PersonaTemplateUpdateRequest(BaseModel):
     name: str | None = Field(default=None, max_length=80)
     description: str | None = Field(default=None, max_length=240)
-    persona_text: str | None = Field(default=None, max_length=400)
+    persona_text: str | None = Field(default=None, max_length=4000)
     persona_profile: PersonaProfile | None = None
 
     @field_validator("name", "description", "persona_text")
@@ -235,7 +235,6 @@ class AgentScaffold(BaseModel):
 class TurnRuntime(BaseModel):
     role_id: str
     app_user_id: str
-    session_id: str
     profile_id: str
     model_id: str
     agent: AgentProfile
@@ -267,7 +266,7 @@ class TurnDebugSnapshot(BaseModel):
     llm: LLMConfigSummary
     prompt_messages: list[PromptMessage]
     warnings: list[str] = Field(default_factory=list)
-    persists_session: bool
+    persists_role: bool
 
 
 class LLMConfigInput(BaseModel):
@@ -347,22 +346,21 @@ class ChatMessage(BaseModel):
     created_at: datetime = Field(default_factory=utc_now)
 
 
-class SessionCreateRequest(BaseModel):
+class RoleCreateRequest(BaseModel):
     role_id: str | None = Field(default=None, min_length=1, max_length=128)
-    session_id: str | None = Field(default=None, min_length=1, max_length=128)
     app_user_id: str | None = Field(default=None, min_length=1, max_length=128)
     profile_id: str | None = Field(default=None, min_length=1, max_length=128)
     title: str | None = Field(default=None, max_length=80)
     persona_id: str | None = Field(default=None, max_length=128)
-    persona_text: str | None = Field(default=None, max_length=400)
+    persona_text: str | None = Field(default=None, max_length=4000)
     role_card: RoleCardInput | None = None
     persona_profile: PersonaProfile | None = None
     agent_id: str | None = Field(default=None, max_length=128)
     llm_config: LLMConfigInput | None = None
 
-    @field_validator("role_id", "session_id", "app_user_id", "profile_id", "persona_id", "title")
+    @field_validator("role_id", "app_user_id", "profile_id", "persona_id", "title")
     @classmethod
-    def strip_session_text(cls, value: str | None) -> str | None:
+    def strip_role_text(cls, value: str | None) -> str | None:
         if value is None:
             return None
         stripped = value.strip()
@@ -370,7 +368,7 @@ class SessionCreateRequest(BaseModel):
 
     @field_validator("persona_text")
     @classmethod
-    def strip_session_persona_text(cls, value: str | None) -> str | None:
+    def strip_role_persona_text(cls, value: str | None) -> str | None:
         if value is None:
             return None
         stripped = value.strip()
@@ -385,54 +383,12 @@ class SessionCreateRequest(BaseModel):
         return stripped or None
 
     @model_validator(mode="after")
-    def resolve_session_identity(self) -> "SessionCreateRequest":
-        if self.__class__.__name__ == "RoleCreateRequest" and self.role_id is None and self.session_id is None:
-            return self
+    def resolve_role_identity(self) -> "RoleCreateRequest":
         if self.app_user_id is None and self.profile_id is not None:
             self.app_user_id = self.profile_id
         if self.profile_id is None and self.app_user_id is not None:
             self.profile_id = self.app_user_id
-        if self.role_id:
-            if self.session_id is None:
-                self.session_id = self.role_id
-        if self.session_id is None:
-            raise ValueError("role_id or session_id is required")
         return self
-
-
-class SessionState(BaseModel):
-    role_id: str | None = None
-    session_id: str
-    app_user_id: str | None = None
-    profile_id: str
-    title: str | None = None
-    persona_id: str | None = None
-    persona_text: str
-    role_card: RoleCardInput | None = None
-    persona_profile: PersonaProfile | None = None
-    agent_id: str | None = None
-    llm_model_id: str | None = None
-    llm_base_url: str | None = None
-    has_llm_api_key: bool = False
-    created_at: datetime = Field(default_factory=utc_now)
-    updated_at: datetime = Field(default_factory=utc_now)
-
-    @model_validator(mode="after")
-    def resolve_state_identity(self) -> "SessionState":
-        if self.app_user_id is None:
-            self.app_user_id = self.profile_id
-        if self.role_id is None:
-            self.role_id = self.session_id
-        return self
-
-
-class SessionHistoryResponse(BaseModel):
-    session: SessionState
-    messages: list[ChatMessage]
-
-
-class RoleCreateRequest(SessionCreateRequest):
-    pass
 
 
 class RoleState(BaseModel):
@@ -450,6 +406,12 @@ class RoleState(BaseModel):
     created_at: datetime = Field(default_factory=utc_now)
     updated_at: datetime = Field(default_factory=utc_now)
 
+    @model_validator(mode="after")
+    def resolve_state_identity(self) -> "RoleState":
+        if self.app_user_id is not None:
+            return self
+        return self
+
 
 class RoleHistoryResponse(BaseModel):
     role: RoleState
@@ -458,11 +420,10 @@ class RoleHistoryResponse(BaseModel):
 
 class ChatSendRequest(BaseModel):
     role_id: str | None = Field(default=None, min_length=1, max_length=128)
-    session_id: str | None = Field(default=None, min_length=1, max_length=128)
     app_user_id: str | None = Field(default=None, min_length=1, max_length=128)
     profile_id: str | None = Field(default=None, min_length=1, max_length=128)
     persona_id: str | None = Field(default=None, max_length=128)
-    persona_text: str | None = Field(default=None, max_length=400)
+    persona_text: str | None = Field(default=None, max_length=4000)
     role_card: RoleCardInput | None = None
     persona_profile: PersonaProfile | None = None
     agent_id: str | None = Field(default=None, max_length=128)
@@ -486,7 +447,7 @@ class ChatSendRequest(BaseModel):
         stripped = value.strip()
         return stripped or None
 
-    @field_validator("role_id", "session_id", "app_user_id", "profile_id", "persona_id", "agent_id")
+    @field_validator("role_id", "app_user_id", "profile_id", "persona_id", "agent_id")
     @classmethod
     def strip_optional_ids(cls, value: str | None) -> str | None:
         if value is None:
@@ -500,18 +461,14 @@ class ChatSendRequest(BaseModel):
             self.app_user_id = self.profile_id
         if self.profile_id is None and self.app_user_id is not None:
             self.profile_id = self.app_user_id
-        if self.role_id:
-            if self.session_id is None:
-                self.session_id = self.role_id
-        if self.session_id is None:
-            raise ValueError("role_id or session_id is required")
+        if self.role_id is None:
+            raise ValueError("role_id is required")
         return self
 
 
 class ChatSendResponse(BaseModel):
     role_id: str | None = None
     app_user_id: str | None = None
-    session_id: str
     model_used: str
     tool_used: bool
     heart_rate: HeartRateReading | None = None
@@ -520,7 +477,7 @@ class ChatSendResponse(BaseModel):
     @model_validator(mode="after")
     def resolve_response_identity(self) -> "ChatSendResponse":
         if self.role_id is None:
-            self.role_id = self.session_id
+            raise ValueError("role_id is required")
         return self
 
 

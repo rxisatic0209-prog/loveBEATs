@@ -3,18 +3,12 @@ from __future__ import annotations
 from fastapi import HTTPException
 
 from app.agent.config import agent_settings
-from app.agent.llm import resolve_llm_config
+from app.agent.llm import default_llm_config, resolve_llm_config
 from app.config import settings
 from app.memory.agent_profiles import resolve_agent_profile
 from app.memory.persona_templates import get_persona_template
 from app.memory.role_prompt_store import upsert_role_prompt_snapshot
-from app.memory.session_store import (
-    create_or_update_session,
-    get_recent_messages,
-    get_session,
-    get_session_llm_config,
-    get_session_optional,
-)
+from app.memory.role_store import create_or_update_role, get_recent_role_messages, get_role, get_role_llm_config, get_role_optional
 from app.models import (
     ChatMessage,
     ChatSendRequest,
@@ -22,8 +16,8 @@ from app.models import (
     LLMConfigSummary,
     MessageRole,
     PromptMessage,
-    SessionCreateRequest,
-    SessionState,
+    RoleCreateRequest,
+    RoleState,
     TurnDebugSnapshot,
     TurnRuntime,
 )
@@ -38,17 +32,17 @@ def create_turn_runtime(
     *,
     persist_session: bool = True,
 ) -> TurnRuntime:
-    session, llm_config = _resolve_role_snapshot(request, persist_session=persist_session)
-    persona = compile_persona(session.persona_text, session.persona_profile)
+    role, llm_config = _resolve_role_snapshot(request, persist_session=persist_session)
+    persona = compile_persona(role.persona_text, role.persona_profile)
     if persist_session:
-        upsert_role_prompt_snapshot(session.session_id, persona)
-    agent = resolve_agent_profile(session.agent_id)
+        upsert_role_prompt_snapshot(role.role_id or request.role_id, persona)
+    agent = resolve_agent_profile(role.agent_id)
     scaffold = build_agent_scaffold()
     policy = agent.to_runtime_policy()
     model_id = llm_config.model_id if llm_config else "mock-local"
     previous_messages = (
-        get_recent_messages(session.session_id, agent_settings.message_window - 1)
-        if get_session_optional(session.session_id)
+        get_recent_role_messages(role.role_id or request.role_id, agent_settings.message_window - 1)
+        if get_role_optional(role.role_id or request.role_id)
         else []
     )
     current_message = ChatMessage(role=MessageRole.user, content=request.user_message)
@@ -57,10 +51,9 @@ def create_turn_runtime(
     runtime_tools = [tool for tool in scaffold.tool_registry if tool.name in enabled_tool_names]
 
     return TurnRuntime(
-        role_id=session.role_id or session.session_id,
-        app_user_id=session.app_user_id or session.profile_id,
-        session_id=session.session_id,
-        profile_id=session.profile_id,
+        role_id=role.role_id or request.role_id,
+        app_user_id=role.app_user_id or settings.default_app_user_id,
+        profile_id=role.app_user_id or settings.default_app_user_id,
         model_id=model_id,
         agent=agent,
         persona=persona,
@@ -79,7 +72,7 @@ def create_turn_debug_snapshot(
     persist_session: bool = False,
 ) -> TurnDebugSnapshot:
     runtime = create_turn_runtime(request, persist_session=persist_session)
-    llm_config = _resolve_runtime_llm_config(runtime.session_id, persist_session=persist_session, request=request)
+    llm_config = _resolve_runtime_llm_config(runtime.role_id, persist_session=persist_session, request=request)
     llm_source = _resolve_llm_source(request, persist_session=persist_session)
     warnings: list[str] = []
     if llm_config is None:
@@ -95,7 +88,7 @@ def create_turn_debug_snapshot(
         llm=_build_llm_summary(llm_config, source=llm_source),
         prompt_messages=_build_prompt_messages(runtime),
         warnings=warnings,
-        persists_session=persist_session,
+        persists_role=persist_session,
     )
 
 
@@ -127,17 +120,13 @@ def _build_llm_summary(llm_config: LLMConfigResolved | None, *, source: str) -> 
 
 
 def _resolve_runtime_llm_config(
-    session_id: str,
+    role_id: str,
     *,
     persist_session: bool,
     request: ChatSendRequest,
 ) -> LLMConfigResolved | None:
-    if persist_session:
-        return get_session_llm_config(session_id)
-    existing = get_session_optional(session_id)
-    existing_llm = get_session_llm_config(session_id) if existing is not None else None
     return resolve_llm_config(
-        existing_llm,
+        default_llm_config(),
         api_key=request.llm_config.api_key if request.llm_config else None,
         base_url=request.llm_config.base_url if request.llm_config else None,
         model_id=request.llm_config.model_id if request.llm_config else None,
@@ -146,14 +135,12 @@ def _resolve_runtime_llm_config(
 
 
 def _resolve_llm_source(request: ChatSendRequest, *, persist_session: bool) -> str:
-    if persist_session:
-        return "session"
     if request.llm_config and any(
         [request.llm_config.api_key, request.llm_config.base_url, request.llm_config.model_id]
     ):
         return "request"
-    if get_session_optional(request.session_id) is not None:
-        return "session"
+    if default_llm_config() is not None:
+        return "default"
     return "mock-local"
 
 
@@ -161,19 +148,18 @@ def _resolve_role_snapshot(
     request: ChatSendRequest,
     *,
     persist_session: bool,
-) -> tuple[SessionState, LLMConfigResolved | None]:
-    existing = get_session_optional(request.session_id)
+) -> tuple[RoleState, LLMConfigResolved | None]:
+    existing = get_role_optional(request.role_id) if request.role_id else None
     app_user_id = _resolve_app_user_id(request, existing)
     if existing is None and not request.persona_text and not request.persona_id and request.role_card is None:
         raise HTTPException(status_code=400, detail="persona_text or persona_id or role_card is required for a new role")
 
     if persist_session:
         if existing is None:
-            create_or_update_session(
-                SessionCreateRequest(
-                    session_id=request.session_id,
+            created = create_or_update_role(
+                RoleCreateRequest(
+                    role_id=request.role_id,
                     app_user_id=app_user_id,
-                    profile_id=app_user_id,
                     persona_id=request.persona_id,
                     persona_text=request.persona_text,
                     role_card=request.role_card,
@@ -183,11 +169,10 @@ def _resolve_role_snapshot(
                 )
             )
         else:
-            create_or_update_session(
-                SessionCreateRequest(
-                    session_id=request.session_id,
+            created = create_or_update_role(
+                RoleCreateRequest(
+                    role_id=request.role_id,
                     app_user_id=app_user_id,
-                    profile_id=app_user_id,
                     title=existing.title,
                     persona_id=request.persona_id or existing.persona_id,
                     persona_text=request.persona_text or existing.persona_text,
@@ -197,8 +182,7 @@ def _resolve_role_snapshot(
                     llm_config=request.llm_config,
                 )
             )
-        session = get_session(request.session_id)
-        return session, get_session_llm_config(request.session_id)
+        return created, _resolve_runtime_llm_config(created.role_id, persist_session=True, request=request)
 
     if existing is None:
         template = get_persona_template(request.persona_id) if request.persona_id else None
@@ -211,11 +195,9 @@ def _resolve_role_snapshot(
             model_id=request.llm_config.model_id if request.llm_config else None,
             timeout=request.llm_config.timeout if request.llm_config else None,
         )
-        session = SessionState(
-            role_id=request.role_id or request.session_id,
-            session_id=request.session_id,
+        role = RoleState(
+            role_id=request.role_id,
             app_user_id=app_user_id,
-            profile_id=app_user_id,
             persona_id=request.persona_id,
             persona_text=request.persona_text or (template.persona_text if template else ""),
             role_card=request.role_card,
@@ -225,23 +207,21 @@ def _resolve_role_snapshot(
             llm_base_url=llm_config.base_url if llm_config else None,
             has_llm_api_key=llm_config is not None,
         )
-        return session, llm_config
+        return role, llm_config
 
-    existing_llm = get_session_llm_config(request.session_id)
     template = get_persona_template(request.persona_id) if request.persona_id else None
     if request.agent_id:
         resolve_agent_profile(request.agent_id)
     llm_config = resolve_llm_config(
-        existing_llm,
+        default_llm_config(),
         api_key=request.llm_config.api_key if request.llm_config else None,
         base_url=request.llm_config.base_url if request.llm_config else None,
         model_id=request.llm_config.model_id if request.llm_config else None,
         timeout=request.llm_config.timeout if request.llm_config else None,
     )
-    session = existing.model_copy(
+    role = existing.model_copy(
         update={
             "app_user_id": app_user_id,
-            "profile_id": app_user_id,
             "persona_id": (
                 request.persona_id
                 if request.persona_id is not None
@@ -260,14 +240,13 @@ def _resolve_role_snapshot(
             "has_llm_api_key": llm_config is not None or existing.has_llm_api_key,
         }
     )
-    return session, llm_config
+    return role, llm_config
 
 
-def _resolve_app_user_id(request: ChatSendRequest, existing: SessionState | None) -> str:
+def _resolve_app_user_id(request: ChatSendRequest, existing: RoleState | None) -> str:
     return (
         request.app_user_id
         or request.profile_id
         or (existing.app_user_id if existing is not None else None)
-        or (existing.profile_id if existing is not None else None)
         or settings.default_app_user_id
     )
