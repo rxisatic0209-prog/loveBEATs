@@ -27,13 +27,13 @@ class MessageRole(str, Enum):
 
 class PersonaProfile(BaseModel):
     display_name: str | None = Field(default=None, max_length=64)
-    relation_mode: str | None = Field(default=None, max_length=128)
+    relation_mode: str | None = Field(default=None, max_length=1000)
     user_nickname: str | None = Field(default=None, max_length=32)
-    tone_hint: str | None = Field(default=None, max_length=128)
-    initiative_hint: str | None = Field(default=None, max_length=64)
-    affection_style: str | None = Field(default=None, max_length=64)
-    expression_level: str | None = Field(default=None, max_length=64)
-    comfort_hint: str | None = Field(default=None, max_length=128)
+    tone_hint: str | None = Field(default=None, max_length=320)
+    initiative_hint: str | None = Field(default=None, max_length=120)
+    affection_style: str | None = Field(default=None, max_length=300)
+    expression_level: str | None = Field(default=None, max_length=120)
+    comfort_hint: str | None = Field(default=None, max_length=200)
     taboo_list: list[str] = Field(default_factory=list, max_length=8)
     lexicon_list: list[str] = Field(default_factory=list, max_length=8)
 

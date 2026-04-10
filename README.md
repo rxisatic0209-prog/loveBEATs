@@ -26,10 +26,6 @@
 - Backend 负责 persona 编译、session、LLM、心率工具
 - iOS 只负责 HealthKit 权限和心率同步
 
-正式路线说明见：
-
-- [docs/project-plan.md](/Users/rxie/Desktop/loveBEATs/docs/project-plan.md)
-
 ## 目录
 
 - `backend/` FastAPI 服务，包含 `http://127.0.0.1:8000/chat` 内置体验页

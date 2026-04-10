@@ -324,22 +324,6 @@
       display: none;
     }
 
-    .keyboard-dismiss {
-      position: fixed;
-      right: 18px;
-      bottom: calc(18px + env(safe-area-inset-bottom, 0px));
-      z-index: 30;
-      display: none;
-      padding-inline: 18px;
-      box-shadow: 0 12px 28px rgba(88, 52, 37, 0.2);
-    }
-
-    body.keyboard-open .keyboard-dismiss {
-      display: inline-flex;
-      align-items: center;
-      justify-content: center;
-    }
-
     .log-panel {
       position: fixed;
       right: 24px;
@@ -563,8 +547,6 @@
     </main>
   </div>
 
-  <button class="secondary keyboard-dismiss" id="dismissKeyboardButton" type="button">收起键盘</button>
-
   <section class="log-panel" id="logPanel">
     <div class="log-header">
       <div class="log-title">
@@ -625,27 +607,15 @@
       statusText: document.getElementById("statusText"),
       messageInput: document.getElementById("messageInput"),
       sendButton: document.getElementById("sendButton"),
-      dismissKeyboardButton: document.getElementById("dismissKeyboardButton"),
     };
 
     const RUN_COMMAND = "bash /Users/rxie/Desktop/loveBEATs/backend/scripts/run_backend.sh";
     const STOP_COMMAND = "bash /Users/rxie/Desktop/loveBEATs/backend/scripts/stop_backend.sh";
 
-    function isEditableField(target) {
-      return target instanceof HTMLElement
-        && (target.tagName === "INPUT" || target.tagName === "TEXTAREA" || target.tagName === "SELECT")
-        && !target.hasAttribute("disabled");
-    }
-
     function dismissKeyboard() {
       if (document.activeElement instanceof HTMLElement) {
         document.activeElement.blur();
       }
-      document.body.classList.remove("keyboard-open");
-    }
-
-    function syncKeyboardState() {
-      document.body.classList.toggle("keyboard-open", isEditableField(document.activeElement));
     }
 
     function splitListInput(value) {
@@ -1157,15 +1127,10 @@
     });
 
     el.messageInput.addEventListener("keydown", async (event) => {
-      if ((event.metaKey || event.ctrlKey) && event.key === "Enter") {
+      if (event.key === "Enter" && !event.shiftKey) {
         event.preventDefault();
         el.sendButton.click();
       }
-    });
-
-    document.addEventListener("focusin", syncKeyboardState);
-    document.addEventListener("focusout", () => {
-      window.setTimeout(syncKeyboardState, 0);
     });
 
     document.addEventListener("keydown", (event) => {
@@ -1173,8 +1138,6 @@
         closeLogsPanel();
       }
     });
-
-    el.dismissKeyboardButton.addEventListener("click", dismissKeyboard);
 
     async function init() {
       applyRoleCardValues(defaultRoleCardValues());

@@ -15,11 +15,6 @@
 - Backend 是统一运行时
 - iOS 只是 HealthKit 心率同步器
 
-项目总路线和阶段计划见：
-
-- [docs/project-plan.md](/Users/rxie/Desktop/loveBEATs/docs/project-plan.md)
-- [docs/backend-architecture.md](/Users/rxie/Desktop/loveBEATs/docs/backend-architecture.md)
-
 ## 当前内部结构
 
 Backend 现在按三层理解：
