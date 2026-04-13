@@ -62,7 +62,7 @@ from app.system.scaffold import build_agent_scaffold
 from app.tools.providers import get_heart_rate_provider_info
 
 setup_logging()
-logger = get_logger("pulseagent.api")
+logger = get_logger("LoveBeats.api")
 
 app = FastAPI(title=settings.app_name)
 CHAT_PAGE_PATH = Path(__file__).resolve().parent / "static" / "chat.html"
@@ -271,13 +271,14 @@ async def heart_rate_latest(request: HeartRateUpsertRequest) -> dict:
         app_user_id=request.app_user_id or request.profile_id,
         bpm=request.bpm,
         timestamp=request.timestamp,
+        source="legacy_upsert_api",
     )
     return reading.model_dump(mode="json")
 
 
 @app.post("/v1/app-users/{app_user_id}/heart-rate/latest", response_model=HeartRateReading)
 async def app_user_heart_rate_latest(app_user_id: str, request: RoleHeartRateAppendRequest) -> HeartRateReading:
-    return upsert_heart_rate(app_user_id=app_user_id, bpm=request.bpm, timestamp=request.timestamp)
+    return upsert_heart_rate(app_user_id=app_user_id, bpm=request.bpm, timestamp=request.timestamp, source="app_user_api")
 
 
 @app.get("/v1/app-users/{app_user_id}/heart-rate/latest", response_model=HeartRateReading)
@@ -298,7 +299,7 @@ async def heart_rate_get(profile_id: str) -> dict:
 
 @app.post("/v1/roles/{role_id}/heart-rate", response_model=HeartRateReading)
 async def role_heart_rate_append(role_id: str, request: RoleHeartRateAppendRequest) -> HeartRateReading:
-    return append_role_heart_rate(role_id=role_id, bpm=request.bpm, timestamp=request.timestamp)
+    return append_role_heart_rate(role_id=role_id, bpm=request.bpm, timestamp=request.timestamp, source="role_api")
 
 
 @app.get("/v1/roles/{role_id}/heart-rate/latest", response_model=HeartRateReading)

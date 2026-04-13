@@ -11,7 +11,7 @@ from app.agent.llm import LLMCallError
 from app.main import app
 
 
-class PulseAgentAPITest(unittest.TestCase):
+class LoveBeatsAPITest(unittest.TestCase):
     def setUp(self) -> None:
         self._original_llm_settings = (
             settings.llm_api_key,
@@ -21,7 +21,7 @@ class PulseAgentAPITest(unittest.TestCase):
         )
         self._original_sqlite_path = settings.sqlite_path
         self._temp_dir = TemporaryDirectory()
-        settings.sqlite_path = str(Path(self._temp_dir.name) / "pulseagent.test.db")
+        settings.sqlite_path = str(Path(self._temp_dir.name) / "LoveBeats.test.db")
         settings.llm_api_key = None
         settings.llm_base_url = None
         settings.llm_model_id = None
@@ -59,7 +59,7 @@ class PulseAgentAPITest(unittest.TestCase):
         response = self.client.get("/chat")
         self.assertEqual(response.status_code, 200)
         self.assertIn("text/html", response.headers["content-type"])
-        self.assertIn("PulseAgent Chat", response.text)
+        self.assertIn("LoveBeats Chat", response.text)
 
     def test_turn_preview_does_not_persist_messages(self) -> None:
         preview_response = self.client.post(

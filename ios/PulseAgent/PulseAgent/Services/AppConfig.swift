@@ -20,20 +20,17 @@ final class AppConfig: ObservableObject {
         self.appUserID =
             UserDefaults.standard.string(forKey: Keys.appUserID)
             ?? UserDefaults.standard.string(forKey: Keys.legacyProfileID)
-            ?? Self.generateID(prefix: "app_user_ios")
-    }
-
-    private static func generateID(prefix: String) -> String {
-        "\(prefix)_\(UUID().uuidString.replacingOccurrences(of: "-", with: "").prefix(12))"
+            ?? AppEnvironment.defaultAppUserID
     }
 }
 
 private enum AppEnvironment {
     static let backendBaseURL = "http://127.0.0.1:8000"
+    static let defaultAppUserID = "local_app_user"
 }
 
 private enum Keys {
-    static let baseURL = "pulseagent.base_url"
-    static let appUserID = "pulseagent.app_user_id"
-    static let legacyProfileID = "pulseagent.profile_id"
+    static let baseURL = "LoveBeats.base_url"
+    static let appUserID = "LoveBeats.app_user_id"
+    static let legacyProfileID = "LoveBeats.profile_id"
 }

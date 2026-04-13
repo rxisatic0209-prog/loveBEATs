@@ -1,6 +1,6 @@
 //
 //  ContentView.swift
-//  PulseAgent
+//  LoveBeats
 //
 //  Created by 谢染 on 2026/4/8.
 //
@@ -69,6 +69,43 @@ private struct HealthSyncView: View {
                     Section("Error") {
                         Text(errorMessage)
                             .foregroundStyle(.red)
+                    }
+                }
+
+                Section {
+                    Button("清空日志") {
+                        viewModel.clearLogs()
+                    }
+                } header: {
+                    Text("运行日志")
+                } footer: {
+                    Text("这里会显示授权、读取、上传和监听过程中的关键事件，方便排查问题。")
+                }
+
+                if viewModel.logs.isEmpty {
+                    Section("日志内容") {
+                        Text("还没有日志。操作一次授权、上传或开始同步后，这里会出现记录。")
+                            .foregroundStyle(.secondary)
+                    }
+                } else {
+                    Section("日志内容") {
+                        ForEach(viewModel.logs) { entry in
+                            VStack(alignment: .leading, spacing: 4) {
+                                HStack {
+                                    Text(entry.level.rawValue)
+                                        .font(.caption.monospaced())
+                                        .foregroundStyle(entry.level == .error ? .red : .secondary)
+                                    Spacer()
+                                    Text(entry.timestamp.formatted(date: .omitted, time: .standard))
+                                        .font(.caption)
+                                        .foregroundStyle(.secondary)
+                                }
+                                Text(entry.message)
+                                    .font(.footnote)
+                                    .textSelection(.enabled)
+                            }
+                            .padding(.vertical, 2)
+                        }
                     }
                 }
             }

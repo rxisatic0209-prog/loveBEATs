@@ -13,7 +13,7 @@
 
 - Web 是聊天与人设输入入口
 - Backend 是统一运行时
-- iOS 只是 HealthKit 心率同步器
+- 心率来源由 provider 抽象统一管理（默认本地缓存，可切到 Pulsoid）
 
 ## 当前内部结构
 
@@ -77,6 +77,9 @@ Backend 现在按三层理解：
 - `ROLE_MESSAGE_WINDOW`
 - `TOOL_CALL_TIMEOUT_SECONDS`
 - `HEART_RATE_TOOL_PROVIDER`
+- `PULSOID_API_BASE`
+- `PULSOID_ACCESS_TOKEN`
+- `PULSOID_TIMEOUT_SECONDS`
 
 ## 前端接法
 
@@ -85,7 +88,7 @@ Backend 现在按三层理解：
 - 一张角色卡对应一个 `role_id`
 - 一个 `role_id` 只绑定一个对话窗口
 - 角色消息历史围绕 `role_id`
-- HealthKit 数据归属于 `app_user_id`
+- 心率数据归属于 `app_user_id`
 - 一个 `role_id` 会绑定到一个 `app_user_id`
 
 兼容阶段仍然保留旧字段：
@@ -193,6 +196,8 @@ Backend 现在按三层理解：
 - `persona_templates`
 - `agent_profiles`
 
+心率相关表现在统一包含 `source` 字段，用于标记数据来源（如 `pulsoid_http_latest`、`app_user_api`、`role_api`）。
+
 ## 主要模块
 
 - `app/state/runtime_state.py`
@@ -221,21 +226,23 @@ Backend 现在按三层理解：
 
 ## 心率能力的边界
 
-当前推荐方式不是让 Web 直接接 HealthKit，而是：
+当前推荐方式不是让 Web 直接对接第三方心率 API，而是：
 
-1. iOS 读取并同步某个 `app_user_id` 的心率到 backend
-2. backend 维护用户级心率缓存和历史
+1. provider（如 Pulsoid）读取某个 `app_user_id` 的最新心率
+2. backend 统一维护用户级心率缓存和历史
 3. agent runtime 在某个 `role_id` 下先解析所属 `app_user_id`
-4. 再读取该 `app_user_id` 的最近心率
+4. 再读取该 `app_user_id` 的最近心率（必要时由 provider 回补）
 
 当前 `get_heart_rate` 保持为 backend 内部 tool，默认 provider 为：
 
 - `local_cache`
   默认 provider，从 `heart_rate_cache` 读用户级最近值
+- `pulsoid`
+  调 Pulsoid latest HTTP 拉取最新心率，成功后回写 `heart_rate_cache`；失败时自动回退本地缓存
 
 当前不再把 MCP 作为主路线。项目主线是：
 
-- iOS：最小 HealthKit 同步器
+- 数据源：Pulsoid latest HTTP（或本地缓存）
 - backend：心率存储与查询
 - agent：直接调用 backend 内部 tool
 

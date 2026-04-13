@@ -9,7 +9,7 @@ import httpx
 
 
 def main() -> int:
-    parser = argparse.ArgumentParser(description="Simulate heart-rate uploads to the PulseAgent backend.")
+    parser = argparse.ArgumentParser(description="Simulate heart-rate uploads to the LoveBeats backend.")
     parser.add_argument("--base-url", default="http://127.0.0.1:8000", help="Backend base URL")
     parser.add_argument("--profile-id", default="demo_profile", help="Profile ID to update")
     parser.add_argument("--min-bpm", type=int, default=72, help="Minimum simulated BPM")

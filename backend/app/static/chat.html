@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>PulseAgent Chat</title>
+  <title>LoveBeats Chat</title>
   <style>
     :root {
       --bg: #f4efe6;
@@ -430,9 +430,9 @@
   <div class="shell">
     <aside class="panel sidebar">
       <div class="brand">
-        <div class="eyebrow">PulseAgent</div>
+        <div class="eyebrow">LoveBeats</div>
         <h1>Chat Studio</h1>
-        <div class="subtle">Web 端专注做人设输入和聊天交互。心率同步由独立 iOS HealthKit 工具完成。</div>
+        <div class="subtle">Web 端专注做人设输入和聊天交互。心率读取由后端 Provider（当前可接 Pulsoid）统一处理。</div>
       </div>
 
       <div class="stack">
@@ -533,7 +533,7 @@
       <div class="messages" id="messages">
         <div class="empty" id="emptyState">
           先创建一个角色卡，然后从这里开始聊天。<br>
-          如果你已经用 iOS 上传过心率，同一个角色卡里的聊天就可以按需取到它。
+          如果你已经配置过心率 provider（例如 Pulsoid），同一个角色卡里的聊天就可以按需取到它。
         </div>
       </div>
 

@@ -328,6 +328,7 @@ class HeartRateReading(BaseModel):
     profile_id: str
     bpm: int | None = None
     timestamp: datetime | None = None
+    source: str | None = None
     age_sec: int | None = None
     status: HeartRateStatus
 

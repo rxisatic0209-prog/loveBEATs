@@ -5,7 +5,7 @@ from app.models import ChatSendResponse, MessageRole, TurnRuntime
 from app.system.guardrails import build_runtime_context_prompt
 from app.tools.heart_rate import execute_get_heart_rate
 
-logger = get_logger("pulseagent.runtime")
+logger = get_logger("LoveBeats.runtime")
 
 
 async def run_turn_runtime(runtime: TurnRuntime) -> ChatSendResponse:

@@ -12,7 +12,7 @@ LOG_FORMAT = "%(asctime)s | %(levelname)s | %(name)s | %(message)s"
 
 def setup_logging() -> None:
     root_logger = logging.getLogger()
-    app_logger = logging.getLogger("pulseagent")
+    app_logger = logging.getLogger("LoveBeats")
 
     if getattr(setup_logging, "_configured", False):
         return

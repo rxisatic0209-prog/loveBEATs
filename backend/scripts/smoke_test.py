@@ -9,7 +9,7 @@ import httpx
 
 
 def main() -> int:
-    parser = argparse.ArgumentParser(description="Smoke test the PulseAgent backend over HTTP.")
+    parser = argparse.ArgumentParser(description="Smoke test the LoveBeats backend over HTTP.")
     parser.add_argument("--base-url", default="http://127.0.0.1:8000", help="Backend base URL")
     args = parser.parse_args()
 

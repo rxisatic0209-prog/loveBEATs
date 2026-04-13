@@ -11,7 +11,7 @@ from app.agent.config import agent_settings
 from app.logging_setup import get_logger
 from app.models import LLMConfigResolved, LLMReply, ToolDefinition
 
-logger = get_logger("pulseagent.llm")
+logger = get_logger("LoveBeats.llm")
 
 
 class LLMCallError(Exception):
@@ -168,7 +168,7 @@ async def call_llm(
         raise LLMCallError(_format_bad_request_error(error), status_code=400) from error
     except AuthenticationError as error:
         logger.warning("llm authentication failed model=%s", llm_config.model_id)
-        raise LLMCallError("模型调用失败：LLM_API_KEY 无效或已失效。请检查 backend/.env。", status_code=401) from error
+        raise LLMCallError("模型调用失败：API Key 无效或已失效。请检查 backend/.env 中的 DEEPSEEK_API_KEY 或 LLM_API_KEY。", status_code=401) from error
     except PermissionDeniedError as error:
         logger.warning("llm permission denied model=%s", llm_config.model_id)
         raise LLMCallError("模型调用失败：当前 key 没有权限访问这个模型或服务。", status_code=403) from error
@@ -180,7 +180,7 @@ async def call_llm(
         raise LLMCallError("模型调用超时。请稍后再试，或检查 LLM_TIMEOUT 设置。", status_code=504) from error
     except APIConnectionError as error:
         logger.warning("llm connection failed model=%s base_url=%s", llm_config.model_id, llm_config.base_url)
-        raise LLMCallError("模型连接失败。请检查 LLM_BASE_URL 和当前网络。", status_code=502) from error
+        raise LLMCallError("模型连接失败。请检查 LLM_BASE_URL（默认是 https://api.deepseek.com）和当前网络。", status_code=502) from error
     message = response.choices[0].message
     tool_calls = getattr(message, "tool_calls", None) or []
     if tool_calls:
@@ -254,5 +254,5 @@ def _format_bad_request_error(error: BadRequestError) -> str:
             error_message = body_error.get("message") or error_message
     lowered = error_message.lower()
     if "incorrect model id" in lowered or "do not have permission to use this model" in lowered:
-        return "模型调用失败：当前 LLM_MODEL_ID 不可用，或当前 key 没有权限使用它。请检查 backend/.env。"
+        return "模型调用失败：当前 LLM_MODEL_ID 不可用，或当前 key 没有权限使用它。请检查 backend/.env 中的模型名和 API Key。"
     return f"模型调用失败：{error_message}"

@@ -26,32 +26,39 @@ def classify_heart_rate_status(age_sec: int | None) -> HeartRateStatus:
     return HeartRateStatus.stale
 
 
-def upsert_heart_rate(app_user_id: str, bpm: int, timestamp: datetime | None) -> HeartRateReading:
+def upsert_heart_rate(
+    app_user_id: str,
+    bpm: int,
+    timestamp: datetime | None,
+    source: str = "local_cache",
+) -> HeartRateReading:
     reading_time = timestamp or datetime.now(timezone.utc)
     age_sec = _age_seconds(reading_time)
     with get_connection() as conn:
         conn.execute(
             """
-            INSERT INTO heart_rate_cache (profile_id, bpm, timestamp)
-            VALUES (?, ?, ?)
+            INSERT INTO heart_rate_cache (profile_id, bpm, timestamp, source)
+            VALUES (?, ?, ?, ?)
             ON CONFLICT(profile_id) DO UPDATE SET
                 bpm = excluded.bpm,
-                timestamp = excluded.timestamp
+                timestamp = excluded.timestamp,
+                source = excluded.source
             """,
-            (app_user_id, bpm, reading_time.isoformat()),
+            (app_user_id, bpm, reading_time.isoformat(), source),
         )
         conn.execute(
             """
-            INSERT INTO app_user_heart_rate_events (app_user_id, bpm, timestamp, created_at)
-            VALUES (?, ?, ?, ?)
+            INSERT INTO app_user_heart_rate_events (app_user_id, bpm, timestamp, source, created_at)
+            VALUES (?, ?, ?, ?, ?)
             """,
-            (app_user_id, bpm, reading_time.isoformat(), datetime.now(timezone.utc).isoformat()),
+            (app_user_id, bpm, reading_time.isoformat(), source, datetime.now(timezone.utc).isoformat()),
         )
     return HeartRateReading(
         app_user_id=app_user_id,
         profile_id=app_user_id,
         bpm=bpm,
         timestamp=reading_time,
+        source=source,
         age_sec=age_sec,
         status=classify_heart_rate_status(age_sec),
     )
@@ -60,7 +67,7 @@ def upsert_heart_rate(app_user_id: str, bpm: int, timestamp: datetime | None) ->
 def get_latest_heart_rate(app_user_id: str) -> HeartRateReading:
     with get_connection() as conn:
         row = conn.execute(
-            "SELECT profile_id, bpm, timestamp FROM heart_rate_cache WHERE profile_id = ?",
+            "SELECT profile_id, bpm, timestamp, source FROM heart_rate_cache WHERE profile_id = ?",
             (app_user_id,),
         ).fetchone()
     if row is None:
@@ -73,12 +80,18 @@ def get_latest_heart_rate(app_user_id: str) -> HeartRateReading:
         profile_id=app_user_id,
         bpm=row["bpm"],
         timestamp=timestamp,
+        source=row["source"],
         age_sec=age_sec,
         status=classify_heart_rate_status(age_sec),
     )
 
 
-def append_role_heart_rate(role_id: str, bpm: int, timestamp: datetime | None) -> HeartRateReading:
+def append_role_heart_rate(
+    role_id: str,
+    bpm: int,
+    timestamp: datetime | None,
+    source: str = "manual_api",
+) -> HeartRateReading:
     from app.memory.role_store import get_role_optional
 
     role = get_role_optional(role_id)
@@ -87,25 +100,26 @@ def append_role_heart_rate(role_id: str, bpm: int, timestamp: datetime | None) -
 
     app_user_id = role.app_user_id
     reading_time = timestamp or datetime.now(timezone.utc)
-    reading = upsert_heart_rate(app_user_id, bpm, reading_time)
+    reading = upsert_heart_rate(app_user_id, bpm, reading_time, source=source)
     created_at = datetime.now(timezone.utc)
     with get_connection() as conn:
         conn.execute(
             """
-            INSERT INTO role_heart_rate_latest (role_id, bpm, timestamp)
-            VALUES (?, ?, ?)
+            INSERT INTO role_heart_rate_latest (role_id, bpm, timestamp, source)
+            VALUES (?, ?, ?, ?)
             ON CONFLICT(role_id) DO UPDATE SET
                 bpm = excluded.bpm,
-                timestamp = excluded.timestamp
+                timestamp = excluded.timestamp,
+                source = excluded.source
             """,
-            (role_id, bpm, reading_time.isoformat()),
+            (role_id, bpm, reading_time.isoformat(), source),
         )
         conn.execute(
             """
-            INSERT INTO role_heart_rate_events (role_id, bpm, timestamp, created_at)
-            VALUES (?, ?, ?, ?)
+            INSERT INTO role_heart_rate_events (role_id, bpm, timestamp, source, created_at)
+            VALUES (?, ?, ?, ?, ?)
             """,
-            (role_id, bpm, reading_time.isoformat(), created_at.isoformat()),
+            (role_id, bpm, reading_time.isoformat(), source, created_at.isoformat()),
         )
     return reading.model_copy(update={"role_id": role_id, "app_user_id": app_user_id, "profile_id": app_user_id})
 
@@ -116,7 +130,7 @@ def get_latest_role_heart_rate(role_id: str) -> HeartRateReading:
     app_user_id = get_app_user_id_for_role(role_id)
     with get_connection() as conn:
         row = conn.execute(
-            "SELECT bpm, timestamp FROM role_heart_rate_latest WHERE role_id = ?",
+            "SELECT bpm, timestamp, source FROM role_heart_rate_latest WHERE role_id = ?",
             (role_id,),
         ).fetchone()
     if row is None:
@@ -129,6 +143,7 @@ def get_latest_role_heart_rate(role_id: str) -> HeartRateReading:
         profile_id=app_user_id,
         bpm=row["bpm"],
         timestamp=timestamp,
+        source=row["source"],
         age_sec=age_sec,
         status=classify_heart_rate_status(age_sec),
     )
@@ -141,7 +156,7 @@ def list_role_heart_rate_events(role_id: str) -> list[HeartRateReading]:
     with get_connection() as conn:
         rows = conn.execute(
             """
-            SELECT bpm, timestamp
+            SELECT bpm, timestamp, source
             FROM role_heart_rate_events
             WHERE role_id = ?
             ORDER BY id ASC
@@ -159,6 +174,7 @@ def list_role_heart_rate_events(role_id: str) -> list[HeartRateReading]:
                 profile_id=app_user_id,
                 bpm=row["bpm"],
                 timestamp=timestamp,
+                source=row["source"],
                 age_sec=age_sec,
                 status=classify_heart_rate_status(age_sec),
             )
@@ -170,7 +186,7 @@ def list_app_user_heart_rate_events(app_user_id: str) -> list[HeartRateReading]:
     with get_connection() as conn:
         rows = conn.execute(
             """
-            SELECT bpm, timestamp
+            SELECT bpm, timestamp, source
             FROM app_user_heart_rate_events
             WHERE app_user_id = ?
             ORDER BY id ASC
@@ -187,6 +203,7 @@ def list_app_user_heart_rate_events(app_user_id: str) -> list[HeartRateReading]:
                 profile_id=app_user_id,
                 bpm=row["bpm"],
                 timestamp=timestamp,
+                source=row["source"],
                 age_sec=age_sec,
                 status=classify_heart_rate_status(age_sec),
             )

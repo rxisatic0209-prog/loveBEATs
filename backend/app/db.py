@@ -22,7 +22,8 @@ def init_db() -> None:
             CREATE TABLE IF NOT EXISTS heart_rate_cache (
                 profile_id TEXT PRIMARY KEY,
                 bpm INTEGER NOT NULL,
-                timestamp TEXT NOT NULL
+                timestamp TEXT NOT NULL,
+                source TEXT NOT NULL DEFAULT 'local_cache'
             );
 
             CREATE TABLE IF NOT EXISTS app_users (
@@ -38,6 +39,7 @@ def init_db() -> None:
                 app_user_id TEXT NOT NULL,
                 bpm INTEGER NOT NULL,
                 timestamp TEXT NOT NULL,
+                source TEXT NOT NULL DEFAULT 'local_cache',
                 created_at TEXT NOT NULL
             );
 
@@ -84,7 +86,8 @@ def init_db() -> None:
             CREATE TABLE IF NOT EXISTS role_heart_rate_latest (
                 role_id TEXT PRIMARY KEY,
                 bpm INTEGER NOT NULL,
-                timestamp TEXT NOT NULL
+                timestamp TEXT NOT NULL,
+                source TEXT NOT NULL DEFAULT 'local_cache'
             );
 
             CREATE TABLE IF NOT EXISTS role_prompt_snapshots (
@@ -99,6 +102,7 @@ def init_db() -> None:
                 role_id TEXT NOT NULL,
                 bpm INTEGER NOT NULL,
                 timestamp TEXT NOT NULL,
+                source TEXT NOT NULL DEFAULT 'local_cache',
                 created_at TEXT NOT NULL
             );
 
@@ -131,6 +135,14 @@ def init_db() -> None:
         )
         _ensure_column(conn, "roles", "profile_id", "TEXT")
         _ensure_column(conn, "roles", "role_card_json", "TEXT")
+        _ensure_column(conn, "heart_rate_cache", "source", "TEXT NOT NULL DEFAULT 'local_cache'")
+        _ensure_column(conn, "app_user_heart_rate_events", "source", "TEXT NOT NULL DEFAULT 'local_cache'")
+        _ensure_column(conn, "role_heart_rate_latest", "source", "TEXT NOT NULL DEFAULT 'local_cache'")
+        _ensure_column(conn, "role_heart_rate_events", "source", "TEXT NOT NULL DEFAULT 'local_cache'")
+        conn.execute("UPDATE heart_rate_cache SET source = 'local_cache' WHERE source IS NULL OR source = ''")
+        conn.execute("UPDATE app_user_heart_rate_events SET source = 'local_cache' WHERE source IS NULL OR source = ''")
+        conn.execute("UPDATE role_heart_rate_latest SET source = 'local_cache' WHERE source IS NULL OR source = ''")
+        conn.execute("UPDATE role_heart_rate_events SET source = 'local_cache' WHERE source IS NULL OR source = ''")
         conn.execute("UPDATE roles SET profile_id = role_id WHERE profile_id IS NULL OR profile_id = ''")
         _migrate_legacy_role_storage(conn)
 
