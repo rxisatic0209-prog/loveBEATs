@@ -204,7 +204,6 @@ Body 示例：
 - 健康检查：`/health`
 - 聊天页面：`/chat`
 - 日志接口：`/v1/debug/logs`
-- 日志文件：[`/Users/rxie/Desktop/loveBEATs/backend/logs/app.log`](/Users/rxie/Desktop/loveBEATs/backend/logs/app.log)
 
 常见问题：
 
