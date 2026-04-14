@@ -61,12 +61,12 @@ pip install -e .
 复制环境变量示例文件：
 
 ```bash
-cp /Users/rxie/Desktop/loveBEATs/backend/.env.example /Users/rxie/Desktop/loveBEATs/backend/.env
+cp backend/.env.example backend/.env
 ```
 
 #### 3.1 最少必填项
 
-如需启动基础聊天链路，至少需要在 [`/Users/rxie/Desktop/loveBEATs/backend/.env`](/Users/rxie/Desktop/loveBEATs/backend/.env) 中填写：
+如需启动基础聊天链路，至少需要在 `backend/.env` 中填写：
 
 ```env
 DEEPSEEK_API_KEY=your_api_key
@@ -118,7 +118,7 @@ PULSOID_TIMEOUT_SECONDS=6
 第一种，直接启动：
 
 ```bash
-cd /Users/rxie/Desktop/loveBEATs/backend
+cd backend
 source .venv/bin/activate
 uvicorn app.main:app --host 127.0.0.1 --port 8000 --reload
 ```
@@ -126,7 +126,7 @@ uvicorn app.main:app --host 127.0.0.1 --port 8000 --reload
 第二种，用项目脚本：
 
 ```bash
-bash /Users/rxie/Desktop/loveBEATs/backend/scripts/run_backend.sh
+bash backend/scripts/run_backend.sh
 ```
 
 ### 5. 打开网页
@@ -204,6 +204,7 @@ Body 示例：
 - 健康检查：`/health`
 - 聊天页面：`/chat`
 - 日志接口：`/v1/debug/logs`
+- 日志文件：`backend/logs/app.log`
 
 常见问题：
 

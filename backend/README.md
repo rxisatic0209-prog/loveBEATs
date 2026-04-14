@@ -34,7 +34,7 @@
 ### 1. 安装
 
 ```bash
-cd /Users/rxie/Desktop/loveBEATs/backend
+cd backend
 python3 -m venv .venv
 source .venv/bin/activate
 pip install -e .
@@ -43,7 +43,7 @@ pip install -e .
 ### 2. 环境变量
 
 ```bash
-cp /Users/rxie/Desktop/loveBEATs/backend/.env.example /Users/rxie/Desktop/loveBEATs/backend/.env
+cp .env.example .env
 ```
 
 #### 基础聊天链路
@@ -70,7 +70,7 @@ PULSOID_TIMEOUT_SECONDS=6
 ### 3. 启动
 
 ```bash
-cd /Users/rxie/Desktop/loveBEATs/backend
+cd backend
 source .venv/bin/activate
 uvicorn app.main:app --host 127.0.0.1 --port 8000 --reload
 ```
@@ -78,7 +78,7 @@ uvicorn app.main:app --host 127.0.0.1 --port 8000 --reload
 或使用项目脚本：
 
 ```bash
-bash /Users/rxie/Desktop/loveBEATs/backend/scripts/run_backend.sh
+bash scripts/run_backend.sh
 ```
 
 ### 4. 访问地址
@@ -113,6 +113,6 @@ bash /Users/rxie/Desktop/loveBEATs/backend/scripts/run_backend.sh
 ## 排错与调试
 
 - 日志接口：`GET /v1/debug/logs`
-- 日志文件：[`/Users/rxie/Desktop/loveBEATs/backend/logs/app.log`](/Users/rxie/Desktop/loveBEATs/backend/logs/app.log)
+- 日志文件：`logs/app.log`
 
 如果模型配置不完整，系统会使用 `mock-local`。这表示后端基础链路正常，但真实模型尚未接通。
