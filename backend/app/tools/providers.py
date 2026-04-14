@@ -9,7 +9,6 @@ import httpx
 from app.logging_setup import get_logger
 from app.memory.heart_rate_store import get_latest_heart_rate
 from app.memory.heart_rate_store import upsert_heart_rate
-from app.memory.role_store import get_app_user_id_for_role
 from app.models import HeartRateReading
 from app.models import HeartRateStatus
 from app.tools.config import tool_settings
@@ -43,9 +42,8 @@ class LocalCacheHeartRateProvider(HeartRateToolProvider):
     transport = "internal"
 
     def get_latest(self, role_id: str) -> HeartRateReading:
-        app_user_id = get_app_user_id_for_role(role_id)
-        reading = get_latest_heart_rate(app_user_id)
-        return reading.model_copy(update={"role_id": role_id, "app_user_id": app_user_id, "profile_id": app_user_id})
+        reading = get_latest_heart_rate()
+        return reading.model_copy(update={"role_id": role_id})
 
     def info(self) -> HeartRateProviderInfo:
         return HeartRateProviderInfo(
@@ -64,11 +62,10 @@ class PulsoidHeartRateProvider(HeartRateToolProvider):
     latest_path = "/api/v1/data/heart_rate/latest"
 
     def get_latest(self, role_id: str) -> HeartRateReading:
-        app_user_id = get_app_user_id_for_role(role_id)
-        reading = self._sync_latest(app_user_id)
+        reading = self._sync_latest()
         if reading is None:
-            reading = get_latest_heart_rate(app_user_id)
-        return reading.model_copy(update={"role_id": role_id, "app_user_id": app_user_id, "profile_id": app_user_id})
+            reading = get_latest_heart_rate()
+        return reading.model_copy(update={"role_id": role_id})
 
     def info(self) -> HeartRateProviderInfo:
         token_ready = bool((tool_settings.pulsoid_access_token or "").strip())
@@ -86,7 +83,7 @@ class PulsoidHeartRateProvider(HeartRateToolProvider):
             note=note,
         )
 
-    def _sync_latest(self, app_user_id: str) -> HeartRateReading | None:
+    def _sync_latest(self) -> HeartRateReading | None:
         token = (tool_settings.pulsoid_access_token or "").strip()
         if not token:
             return None
@@ -104,8 +101,6 @@ class PulsoidHeartRateProvider(HeartRateToolProvider):
 
         if response.status_code == 412:
             return HeartRateReading(
-                app_user_id=app_user_id,
-                profile_id=app_user_id,
                 source="pulsoid_http_latest",
                 status=HeartRateStatus.unavailable,
             )
@@ -124,7 +119,7 @@ class PulsoidHeartRateProvider(HeartRateToolProvider):
             logger.warning("pulsoid payload missing usable heart rate: %s", str(payload)[:256])
             return None
         bpm, measured_at = parsed
-        return upsert_heart_rate(app_user_id=app_user_id, bpm=bpm, timestamp=measured_at, source="pulsoid_http_latest")
+        return upsert_heart_rate(bpm=bpm, timestamp=measured_at, source="pulsoid_http_latest")
 
     def _parse_payload(self, payload: dict[str, Any]) -> tuple[int, datetime | None] | None:
         data = payload.get("data", payload)

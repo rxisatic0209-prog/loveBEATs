@@ -27,7 +27,6 @@ def classify_heart_rate_status(age_sec: int | None) -> HeartRateStatus:
 
 
 def upsert_heart_rate(
-    app_user_id: str,
     bpm: int,
     timestamp: datetime | None,
     source: str = "local_cache",
@@ -37,25 +36,23 @@ def upsert_heart_rate(
     with get_connection() as conn:
         conn.execute(
             """
-            INSERT INTO heart_rate_cache (profile_id, bpm, timestamp, source)
-            VALUES (?, ?, ?, ?)
-            ON CONFLICT(profile_id) DO UPDATE SET
+            INSERT INTO heart_rate_cache (cache_key, bpm, timestamp, source)
+            VALUES ('global', ?, ?, ?)
+            ON CONFLICT(cache_key) DO UPDATE SET
                 bpm = excluded.bpm,
                 timestamp = excluded.timestamp,
                 source = excluded.source
             """,
-            (app_user_id, bpm, reading_time.isoformat(), source),
+            (bpm, reading_time.isoformat(), source),
         )
         conn.execute(
             """
-            INSERT INTO app_user_heart_rate_events (app_user_id, bpm, timestamp, source, created_at)
-            VALUES (?, ?, ?, ?, ?)
+            INSERT INTO heart_rate_events (bpm, timestamp, source, created_at)
+            VALUES (?, ?, ?, ?)
             """,
-            (app_user_id, bpm, reading_time.isoformat(), source, datetime.now(timezone.utc).isoformat()),
+            (bpm, reading_time.isoformat(), source, datetime.now(timezone.utc).isoformat()),
         )
     return HeartRateReading(
-        app_user_id=app_user_id,
-        profile_id=app_user_id,
         bpm=bpm,
         timestamp=reading_time,
         source=source,
@@ -64,20 +61,17 @@ def upsert_heart_rate(
     )
 
 
-def get_latest_heart_rate(app_user_id: str) -> HeartRateReading:
+def get_latest_heart_rate() -> HeartRateReading:
     with get_connection() as conn:
         row = conn.execute(
-            "SELECT profile_id, bpm, timestamp, source FROM heart_rate_cache WHERE profile_id = ?",
-            (app_user_id,),
+            "SELECT cache_key, bpm, timestamp, source FROM heart_rate_cache WHERE cache_key = 'global'",
         ).fetchone()
     if row is None:
-        return HeartRateReading(app_user_id=app_user_id, profile_id=app_user_id, status=HeartRateStatus.unavailable)
+        return HeartRateReading(status=HeartRateStatus.unavailable)
 
     timestamp = datetime.fromisoformat(row["timestamp"])
     age_sec = _age_seconds(timestamp)
     return HeartRateReading(
-        app_user_id=app_user_id,
-        profile_id=app_user_id,
         bpm=row["bpm"],
         timestamp=timestamp,
         source=row["source"],
@@ -98,9 +92,8 @@ def append_role_heart_rate(
     if role is None:
         raise HTTPException(status_code=404, detail="role not found")
 
-    app_user_id = role.app_user_id
     reading_time = timestamp or datetime.now(timezone.utc)
-    reading = upsert_heart_rate(app_user_id, bpm, reading_time, source=source)
+    reading = upsert_heart_rate(bpm, reading_time, source=source)
     created_at = datetime.now(timezone.utc)
     with get_connection() as conn:
         conn.execute(
@@ -121,26 +114,21 @@ def append_role_heart_rate(
             """,
             (role_id, bpm, reading_time.isoformat(), source, created_at.isoformat()),
         )
-    return reading.model_copy(update={"role_id": role_id, "app_user_id": app_user_id, "profile_id": app_user_id})
+    return reading.model_copy(update={"role_id": role_id})
 
 
 def get_latest_role_heart_rate(role_id: str) -> HeartRateReading:
-    from app.memory.role_store import get_app_user_id_for_role
-
-    app_user_id = get_app_user_id_for_role(role_id)
     with get_connection() as conn:
         row = conn.execute(
             "SELECT bpm, timestamp, source FROM role_heart_rate_latest WHERE role_id = ?",
             (role_id,),
         ).fetchone()
     if row is None:
-        return HeartRateReading(role_id=role_id, app_user_id=app_user_id, profile_id=app_user_id, status=HeartRateStatus.unavailable)
+        return HeartRateReading(role_id=role_id, status=HeartRateStatus.unavailable)
     timestamp = datetime.fromisoformat(row["timestamp"])
     age_sec = _age_seconds(timestamp)
     return HeartRateReading(
         role_id=role_id,
-        app_user_id=app_user_id,
-        profile_id=app_user_id,
         bpm=row["bpm"],
         timestamp=timestamp,
         source=row["source"],
@@ -150,9 +138,6 @@ def get_latest_role_heart_rate(role_id: str) -> HeartRateReading:
 
 
 def list_role_heart_rate_events(role_id: str) -> list[HeartRateReading]:
-    from app.memory.role_store import get_app_user_id_for_role
-
-    app_user_id = get_app_user_id_for_role(role_id)
     with get_connection() as conn:
         rows = conn.execute(
             """
@@ -170,8 +155,6 @@ def list_role_heart_rate_events(role_id: str) -> list[HeartRateReading]:
         readings.append(
             HeartRateReading(
                 role_id=role_id,
-                app_user_id=app_user_id,
-                profile_id=app_user_id,
                 bpm=row["bpm"],
                 timestamp=timestamp,
                 source=row["source"],
@@ -182,16 +165,14 @@ def list_role_heart_rate_events(role_id: str) -> list[HeartRateReading]:
     return readings
 
 
-def list_app_user_heart_rate_events(app_user_id: str) -> list[HeartRateReading]:
+def list_heart_rate_events() -> list[HeartRateReading]:
     with get_connection() as conn:
         rows = conn.execute(
             """
             SELECT bpm, timestamp, source
-            FROM app_user_heart_rate_events
-            WHERE app_user_id = ?
+            FROM heart_rate_events
             ORDER BY id ASC
-            """,
-            (app_user_id,),
+            """
         ).fetchall()
     readings: list[HeartRateReading] = []
     for row in rows:
@@ -199,8 +180,6 @@ def list_app_user_heart_rate_events(app_user_id: str) -> list[HeartRateReading]:
         age_sec = _age_seconds(timestamp)
         readings.append(
             HeartRateReading(
-                app_user_id=app_user_id,
-                profile_id=app_user_id,
                 bpm=row["bpm"],
                 timestamp=timestamp,
                 source=row["source"],

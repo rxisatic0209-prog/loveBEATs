@@ -1,6 +1,6 @@
 import unittest
-from tempfile import TemporaryDirectory
 from pathlib import Path
+from tempfile import TemporaryDirectory
 from unittest.mock import AsyncMock, patch
 
 from fastapi.testclient import TestClient
@@ -66,7 +66,6 @@ class LoveBeatsAPITest(unittest.TestCase):
             "/v1/turns/preview",
             json={
                 "role_id": "role_preview",
-                "profile_id": "p_preview",
                 "persona_text": "像恋人一样聊天，温柔一点。",
                 "user_message": "你在想我吗？",
                 "idle_seconds": 18,
@@ -85,7 +84,6 @@ class LoveBeatsAPITest(unittest.TestCase):
             "/v1/turns/debug",
             json={
                 "role_id": "role_debug",
-                "profile_id": "p_debug",
                 "persona_text": "像恋人一样聊天，温柔一点。",
                 "user_message": "我有点想你。",
                 "idle_seconds": 12,
@@ -107,14 +105,6 @@ class LoveBeatsAPITest(unittest.TestCase):
     def test_heart_rate_simulator_script_exists(self) -> None:
         script_path = Path("/Users/rxie/Desktop/loveBEATs/backend/scripts/heart_rate_simulator.py")
         self.assertTrue(script_path.exists())
-
-    def test_ios_project_exists(self) -> None:
-        base = Path("/Users/rxie/Desktop/loveBEATs/ios/PulseAgent/PulseAgent")
-        self.assertTrue(Path("/Users/rxie/Desktop/loveBEATs/ios/PulseAgent/PulseAgent.xcodeproj/project.pbxproj").exists())
-        self.assertTrue((base / "PulseAgentApp.swift").exists())
-        self.assertTrue((base / "Services/HealthKitHeartRateService.swift").exists())
-        self.assertTrue((base / "ViewModels/HeartRateSyncViewModel.swift").exists())
-        self.assertTrue((base / "Support/PulseAgent.entitlements").exists())
 
     def test_persona_compile_with_profile(self) -> None:
         response = self.client.post(
@@ -205,7 +195,6 @@ class LoveBeatsAPITest(unittest.TestCase):
             "/v1/turns/preview",
             json={
                 "role_id": "role_agent_preview",
-                "profile_id": "p_agent_preview",
                 "persona_id": persona_id,
                 "agent_id": agent["agent_id"],
                 "user_message": "你会不会想我？",
@@ -241,7 +230,6 @@ class LoveBeatsAPITest(unittest.TestCase):
             "/v1/roles",
             json={
                 "role_id": "role_bound",
-                "profile_id": "p_bound",
                 "persona_id": persona_response.json()["persona_id"],
                 "agent_id": agent_response.json()["agent_id"],
             },
@@ -381,20 +369,6 @@ class LoveBeatsAPITest(unittest.TestCase):
             "模型调用失败：当前 LLM_MODEL_ID 不可用，或当前 key 没有权限使用它。请检查 backend/.env。",
         )
 
-    def test_role_create_with_app_user_id_still_generates_role_id(self) -> None:
-        create_response = self.client.post(
-            "/v1/roles",
-            json={
-                "app_user_id": "app_user_bridge_owner",
-                "persona_text": "像恋人一样聊天，温柔一点。",
-            },
-        )
-        self.assertEqual(create_response.status_code, 200)
-        role = create_response.json()
-        self.assertTrue(role["role_id"].startswith("role_"))
-        self.assertNotEqual(role["role_id"], "app_user_bridge_owner")
-        self.assertEqual(role["app_user_id"], "app_user_bridge_owner")
-
     def test_role_heart_rate_history_starts_after_role_creation(self) -> None:
         self.client.post(
             "/v1/roles",
@@ -410,8 +384,6 @@ class LoveBeatsAPITest(unittest.TestCase):
         self.assertEqual(append_response.status_code, 200)
         reading = append_response.json()
         self.assertEqual(reading["role_id"], "role_hr_001")
-        self.assertEqual(reading["app_user_id"], "local_app_user")
-        self.assertEqual(reading["profile_id"], "local_app_user")
         self.assertEqual(reading["status"], "fresh")
 
         latest_response = self.client.get("/v1/roles/role_hr_001/heart-rate/latest")
@@ -423,22 +395,17 @@ class LoveBeatsAPITest(unittest.TestCase):
         history = history_response.json()
         self.assertEqual(len(history), 1)
         self.assertEqual(history[0]["role_id"], "role_hr_001")
-        self.assertEqual(history[0]["app_user_id"], "local_app_user")
         self.assertEqual(history[0]["bpm"], 88)
 
-    def test_role_heart_rate_tool_reads_owner_app_user_latest(self) -> None:
+    def test_role_heart_rate_tool_reads_global_latest(self) -> None:
         self.client.post(
             "/v1/roles",
             json={
                 "role_id": "role_owner_001",
-                "app_user_id": "app_user_alex",
                 "persona_text": "像恋人一样聊天，温柔一点。",
             },
         )
-        self.client.post(
-            "/v1/app-users/app_user_alex/heart-rate/latest",
-            json={"bpm": 91},
-        )
+        self.client.post("/v1/heart-rate/latest", json={"bpm": 91})
         chat_response = self.client.post(
             "/v1/chat/send",
             json={
@@ -449,8 +416,6 @@ class LoveBeatsAPITest(unittest.TestCase):
         self.assertEqual(chat_response.status_code, 200)
         data = chat_response.json()
         self.assertTrue(data["tool_used"])
-        self.assertEqual(data["app_user_id"], "app_user_alex")
-        self.assertEqual(data["heart_rate"]["app_user_id"], "app_user_alex")
         self.assertEqual(data["heart_rate"]["bpm"], 91)
 
     def test_role_lifecycle_and_chat(self) -> None:
@@ -458,7 +423,6 @@ class LoveBeatsAPITest(unittest.TestCase):
             "/v1/roles",
             json={
                 "role_id": "role_heart_001",
-                "profile_id": "p_001",
                 "title": "默认恋人",
                 "persona_text": "像恋人一样聊天，温柔一点，可以接住情绪。",
             },
@@ -467,7 +431,7 @@ class LoveBeatsAPITest(unittest.TestCase):
 
         hr_response = self.client.post(
             "/v1/heart-rate/latest",
-            json={"profile_id": "p_001", "bpm": 96},
+            json={"bpm": 96},
         )
         self.assertEqual(hr_response.status_code, 200)
         self.assertEqual(hr_response.json()["status"], "fresh")
@@ -498,7 +462,6 @@ class LoveBeatsAPITest(unittest.TestCase):
             "/v1/roles",
             json={
                 "role_id": "role_llm_003",
-                "profile_id": "p_003",
                 "title": "用户自填模型",
                 "persona_text": "像恋人一样聊天。",
                 "llm_config": {
@@ -519,7 +482,6 @@ class LoveBeatsAPITest(unittest.TestCase):
             "/v1/roles",
             json={
                 "role_id": "role_persist_004",
-                "profile_id": "p_004",
                 "persona_text": "像恋人一样聊天，安静一点。",
             },
         )
@@ -543,7 +505,6 @@ class LoveBeatsAPITest(unittest.TestCase):
             "/v1/roles",
             json={
                 "role_id": "role_reset",
-                "profile_id": "p_reset",
                 "persona_text": "像恋人一样聊天，温柔一点。",
             },
         )
@@ -559,7 +520,6 @@ class LoveBeatsAPITest(unittest.TestCase):
             "/v1/roles",
             json={
                 "role_id": "role_reset",
-                "profile_id": "p_reset",
                 "persona_text": "你现在是另一张新角色卡，语气更冷静。",
             },
         )
@@ -575,7 +535,6 @@ class LoveBeatsAPITest(unittest.TestCase):
             "/v1/chat/send",
             json={
                 "role_id": "role_002",
-                "profile_id": "p_002",
                 "user_message": "你好。",
             },
         )

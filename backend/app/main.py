@@ -23,7 +23,7 @@ from app.memory.heart_rate_store import (
     append_role_heart_rate,
     get_latest_heart_rate,
     get_latest_role_heart_rate,
-    list_app_user_heart_rate_events,
+    list_heart_rate_events,
     list_role_heart_rate_events,
     upsert_heart_rate,
 )
@@ -268,32 +268,21 @@ async def heart_rate_latest(request: HeartRateUpsertRequest) -> dict:
         )
         return reading.model_dump(mode="json")
     reading = upsert_heart_rate(
-        app_user_id=request.app_user_id or request.profile_id,
         bpm=request.bpm,
         timestamp=request.timestamp,
-        source="legacy_upsert_api",
+        source="manual_api",
     )
     return reading.model_dump(mode="json")
 
 
-@app.post("/v1/app-users/{app_user_id}/heart-rate/latest", response_model=HeartRateReading)
-async def app_user_heart_rate_latest(app_user_id: str, request: RoleHeartRateAppendRequest) -> HeartRateReading:
-    return upsert_heart_rate(app_user_id=app_user_id, bpm=request.bpm, timestamp=request.timestamp, source="app_user_api")
+@app.get("/v1/heart-rate/history", response_model=list[HeartRateReading])
+async def heart_rate_history() -> list[HeartRateReading]:
+    return list_heart_rate_events()
 
 
-@app.get("/v1/app-users/{app_user_id}/heart-rate/latest", response_model=HeartRateReading)
-async def app_user_heart_rate_get(app_user_id: str) -> HeartRateReading:
-    return get_latest_heart_rate(app_user_id)
-
-
-@app.get("/v1/app-users/{app_user_id}/heart-rate/history", response_model=list[HeartRateReading])
-async def app_user_heart_rate_history(app_user_id: str) -> list[HeartRateReading]:
-    return list_app_user_heart_rate_events(app_user_id)
-
-
-@app.get("/v1/heart-rate/latest/{profile_id}")
-async def heart_rate_get(profile_id: str) -> dict:
-    reading = get_latest_heart_rate(profile_id)
+@app.get("/v1/heart-rate/latest")
+async def heart_rate_get() -> dict:
+    reading = get_latest_heart_rate()
     return reading.model_dump(mode="json")
 
 

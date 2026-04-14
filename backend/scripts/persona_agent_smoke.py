@@ -14,8 +14,7 @@ def main() -> int:
 
     base_url = args.base_url.rstrip("/")
     suffix = uuid4().hex[:8]
-    session_id = f"persona_agent_session_{suffix}"
-    profile_id = f"persona_agent_profile_{suffix}"
+    role_id = f"persona_agent_role_{suffix}"
 
     with httpx.Client(base_url=base_url, timeout=15.0) as client:
         _request(client, "GET", "/health")
@@ -54,28 +53,26 @@ def main() -> int:
         )
         agent_id = agent["agent_id"]
 
-        session = _request(
+        role = _request(
             client,
             "POST",
-            "/v1/sessions",
+            "/v1/roles",
             {
-                "session_id": session_id,
-                "profile_id": profile_id,
+                "role_id": role_id,
                 "title": "Persona + Agent Smoke",
                 "persona_id": persona_id,
                 "agent_id": agent_id,
             },
         )
-        _assert(session["persona_id"] == persona_id, "session persona binding mismatch")
-        _assert(session["agent_id"] == agent_id, "session agent binding mismatch")
+        _assert(role["persona_id"] == persona_id, "role persona binding mismatch")
+        _assert(role["agent_id"] == agent_id, "role agent binding mismatch")
 
         debug = _request(
             client,
             "POST",
             "/v1/turns/debug",
             {
-                "session_id": session_id,
-                "profile_id": profile_id,
+                "role_id": role_id,
                 "user_message": "刚刚有点紧张，想让你陪我说说话。",
                 "idle_seconds": 33,
             },
@@ -89,8 +86,7 @@ def main() -> int:
             "POST",
             "/v1/chat/send",
             {
-                "session_id": session_id,
-                "profile_id": profile_id,
+                "role_id": role_id,
                 "user_message": "刚刚有点紧张，想让你陪我说说话。",
                 "idle_seconds": 33,
             },

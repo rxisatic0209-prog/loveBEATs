@@ -234,8 +234,6 @@ class AgentScaffold(BaseModel):
 
 class TurnRuntime(BaseModel):
     role_id: str
-    app_user_id: str
-    profile_id: str
     model_id: str
     agent: AgentProfile
     persona: PersonaCompiled
@@ -293,12 +291,10 @@ class LLMConfigResolved(BaseModel):
 
 class HeartRateUpsertRequest(BaseModel):
     role_id: str | None = Field(default=None, min_length=1, max_length=128)
-    app_user_id: str | None = Field(default=None, min_length=1, max_length=128)
-    profile_id: str | None = Field(default=None, min_length=1, max_length=128)
     bpm: int = Field(ge=30, le=220)
     timestamp: datetime | None = None
 
-    @field_validator("role_id", "app_user_id", "profile_id")
+    @field_validator("role_id")
     @classmethod
     def strip_identity_text(cls, value: str | None) -> str | None:
         if value is None:
@@ -308,12 +304,6 @@ class HeartRateUpsertRequest(BaseModel):
 
     @model_validator(mode="after")
     def resolve_identity(self) -> "HeartRateUpsertRequest":
-        if self.app_user_id is None and self.profile_id is not None:
-            self.app_user_id = self.profile_id
-        if self.profile_id is None and self.app_user_id is not None:
-            self.profile_id = self.app_user_id
-        if self.role_id is None and self.app_user_id is None and self.profile_id is None:
-            raise ValueError("role_id or app_user_id or profile_id is required")
         return self
 
 
@@ -324,8 +314,6 @@ class RoleHeartRateAppendRequest(BaseModel):
 
 class HeartRateReading(BaseModel):
     role_id: str | None = None
-    app_user_id: str | None = None
-    profile_id: str
     bpm: int | None = None
     timestamp: datetime | None = None
     source: str | None = None
@@ -334,10 +322,6 @@ class HeartRateReading(BaseModel):
 
     @model_validator(mode="after")
     def resolve_reading_identity(self) -> "HeartRateReading":
-        if self.app_user_id is None:
-            self.app_user_id = self.profile_id
-        if self.role_id is None:
-            self.role_id = None
         return self
 
 
@@ -349,8 +333,6 @@ class ChatMessage(BaseModel):
 
 class RoleCreateRequest(BaseModel):
     role_id: str | None = Field(default=None, min_length=1, max_length=128)
-    app_user_id: str | None = Field(default=None, min_length=1, max_length=128)
-    profile_id: str | None = Field(default=None, min_length=1, max_length=128)
     title: str | None = Field(default=None, max_length=80)
     persona_id: str | None = Field(default=None, max_length=128)
     persona_text: str | None = Field(default=None, max_length=4000)
@@ -359,7 +341,7 @@ class RoleCreateRequest(BaseModel):
     agent_id: str | None = Field(default=None, max_length=128)
     llm_config: LLMConfigInput | None = None
 
-    @field_validator("role_id", "app_user_id", "profile_id", "persona_id", "title")
+    @field_validator("role_id", "persona_id", "title")
     @classmethod
     def strip_role_text(cls, value: str | None) -> str | None:
         if value is None:
@@ -385,16 +367,11 @@ class RoleCreateRequest(BaseModel):
 
     @model_validator(mode="after")
     def resolve_role_identity(self) -> "RoleCreateRequest":
-        if self.app_user_id is None and self.profile_id is not None:
-            self.app_user_id = self.profile_id
-        if self.profile_id is None and self.app_user_id is not None:
-            self.profile_id = self.app_user_id
         return self
 
 
 class RoleState(BaseModel):
     role_id: str
-    app_user_id: str | None = None
     title: str | None = None
     persona_id: str | None = None
     persona_text: str
@@ -409,8 +386,6 @@ class RoleState(BaseModel):
 
     @model_validator(mode="after")
     def resolve_state_identity(self) -> "RoleState":
-        if self.app_user_id is not None:
-            return self
         return self
 
 
@@ -421,8 +396,6 @@ class RoleHistoryResponse(BaseModel):
 
 class ChatSendRequest(BaseModel):
     role_id: str | None = Field(default=None, min_length=1, max_length=128)
-    app_user_id: str | None = Field(default=None, min_length=1, max_length=128)
-    profile_id: str | None = Field(default=None, min_length=1, max_length=128)
     persona_id: str | None = Field(default=None, max_length=128)
     persona_text: str | None = Field(default=None, max_length=4000)
     role_card: RoleCardInput | None = None
@@ -448,7 +421,7 @@ class ChatSendRequest(BaseModel):
         stripped = value.strip()
         return stripped or None
 
-    @field_validator("role_id", "app_user_id", "profile_id", "persona_id", "agent_id")
+    @field_validator("role_id", "persona_id", "agent_id")
     @classmethod
     def strip_optional_ids(cls, value: str | None) -> str | None:
         if value is None:
@@ -458,10 +431,6 @@ class ChatSendRequest(BaseModel):
 
     @model_validator(mode="after")
     def resolve_chat_identity(self) -> "ChatSendRequest":
-        if self.app_user_id is None and self.profile_id is not None:
-            self.app_user_id = self.profile_id
-        if self.profile_id is None and self.app_user_id is not None:
-            self.profile_id = self.app_user_id
         if self.role_id is None:
             raise ValueError("role_id is required")
         return self
@@ -469,7 +438,6 @@ class ChatSendRequest(BaseModel):
 
 class ChatSendResponse(BaseModel):
     role_id: str | None = None
-    app_user_id: str | None = None
     model_used: str
     tool_used: bool
     heart_rate: HeartRateReading | None = None

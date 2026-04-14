@@ -5,7 +5,6 @@ from pydantic_settings import BaseSettings, SettingsConfigDict
 class Settings(BaseSettings):
     app_name: str = "LoveBeats MVP"
     sqlite_path: str = "LoveBeats.db"
-    default_app_user_id: str = "local_app_user"
     log_level: str = "INFO"
     log_dir: str = "logs"
     log_filename: str = "app.log"

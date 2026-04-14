@@ -52,8 +52,6 @@ def create_turn_runtime(
 
     return TurnRuntime(
         role_id=role.role_id or request.role_id,
-        app_user_id=role.app_user_id or settings.default_app_user_id,
-        profile_id=role.app_user_id or settings.default_app_user_id,
         model_id=model_id,
         agent=agent,
         persona=persona,
@@ -150,7 +148,6 @@ def _resolve_role_snapshot(
     persist_session: bool,
 ) -> tuple[RoleState, LLMConfigResolved | None]:
     existing = get_role_optional(request.role_id) if request.role_id else None
-    app_user_id = _resolve_app_user_id(request, existing)
     if existing is None and not request.persona_text and not request.persona_id and request.role_card is None:
         raise HTTPException(status_code=400, detail="persona_text or persona_id or role_card is required for a new role")
 
@@ -159,7 +156,6 @@ def _resolve_role_snapshot(
             created = create_or_update_role(
                 RoleCreateRequest(
                     role_id=request.role_id,
-                    app_user_id=app_user_id,
                     persona_id=request.persona_id,
                     persona_text=request.persona_text,
                     role_card=request.role_card,
@@ -172,7 +168,6 @@ def _resolve_role_snapshot(
             created = create_or_update_role(
                 RoleCreateRequest(
                     role_id=request.role_id,
-                    app_user_id=app_user_id,
                     title=existing.title,
                     persona_id=request.persona_id or existing.persona_id,
                     persona_text=request.persona_text or existing.persona_text,
@@ -197,7 +192,6 @@ def _resolve_role_snapshot(
         )
         role = RoleState(
             role_id=request.role_id,
-            app_user_id=app_user_id,
             persona_id=request.persona_id,
             persona_text=request.persona_text or (template.persona_text if template else ""),
             role_card=request.role_card,
@@ -221,7 +215,6 @@ def _resolve_role_snapshot(
     )
     role = existing.model_copy(
         update={
-            "app_user_id": app_user_id,
             "persona_id": (
                 request.persona_id
                 if request.persona_id is not None
@@ -242,11 +235,3 @@ def _resolve_role_snapshot(
     )
     return role, llm_config
 
-
-def _resolve_app_user_id(request: ChatSendRequest, existing: RoleState | None) -> str:
-    return (
-        request.app_user_id
-        or request.profile_id
-        or (existing.app_user_id if existing is not None else None)
-        or settings.default_app_user_id
-    )

@@ -85,7 +85,6 @@ async def run_turn_runtime(runtime: TurnRuntime) -> ChatSendResponse:
 
     return ChatSendResponse(
         role_id=runtime.role_id,
-        app_user_id=runtime.app_user_id,
         model_used=model_used,
         tool_used=tool_used,
         heart_rate=heart_rate,

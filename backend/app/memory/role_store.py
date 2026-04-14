@@ -7,7 +7,6 @@ from datetime import datetime, timezone
 from fastapi import HTTPException
 
 from app.agent.llm import default_llm_config
-from app.config import settings
 from app.db import get_connection
 from app.memory.agent_profiles import get_agent_profile
 from app.memory.heart_rate_store import delete_role_heart_rate_events
@@ -51,7 +50,6 @@ def _row_to_role_state(row) -> RoleState:
     persona_profile = json.loads(row["persona_profile_json"]) if row["persona_profile_json"] else None
     return RoleState(
         role_id=row["role_id"],
-        app_user_id=row["profile_id"],
         title=row["title"],
         persona_id=row["persona_id"],
         persona_text=row["persona_text"],
@@ -69,7 +67,6 @@ def _row_to_role_state(row) -> RoleState:
 def create_or_update_role(request: RoleCreateRequest) -> RoleState:
     role_id = request.role_id or _generate_role_id()
     existing = get_role_optional(role_id)
-    app_user_id = _resolve_app_user_id(request, existing)
     persona_id, persona_text, role_card, persona_profile = _resolve_persona_inputs(request, existing)
     agent_id = _resolve_agent_id(request, existing)
     resolved_llm = default_llm_config()
@@ -78,7 +75,6 @@ def create_or_update_role(request: RoleCreateRequest) -> RoleState:
     if existing is None:
         state = RoleState(
             role_id=role_id,
-            app_user_id=app_user_id,
             title=request.title,
             persona_id=persona_id,
             persona_text=persona_text,
@@ -95,13 +91,12 @@ def create_or_update_role(request: RoleCreateRequest) -> RoleState:
             conn.execute(
                 """
                 INSERT INTO roles (
-                    role_id, profile_id, title, persona_id, persona_text, role_card_json, persona_profile_json, agent_id,
+                    role_id, title, persona_id, persona_text, role_card_json, persona_profile_json, agent_id,
                     llm_model_id, llm_base_url, has_llm_api_key, created_at, updated_at
-                ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+                ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
                 """,
                 (
                     state.role_id,
-                    state.app_user_id,
                     state.title,
                     state.persona_id,
                     state.persona_text,
@@ -115,12 +110,10 @@ def create_or_update_role(request: RoleCreateRequest) -> RoleState:
                     state.updated_at.isoformat(),
                 ),
             )
-            _upsert_app_user(conn, app_user_id, state.created_at)
         return state
 
     updated = existing.model_copy(
         update={
-            "app_user_id": app_user_id,
             "title": request.title or existing.title,
             "persona_id": persona_id,
             "persona_text": persona_text,
@@ -136,16 +129,14 @@ def create_or_update_role(request: RoleCreateRequest) -> RoleState:
     with get_connection() as conn:
         if _persona_memory_boundary_changed(existing, updated):
             conn.execute("DELETE FROM role_messages WHERE role_id = ?", (updated.role_id,))
-        _upsert_app_user(conn, app_user_id, updated.updated_at)
         conn.execute(
             """
             UPDATE roles
-            SET profile_id = ?, title = ?, persona_id = ?, persona_text = ?, role_card_json = ?, persona_profile_json = ?, agent_id = ?,
+            SET title = ?, persona_id = ?, persona_text = ?, role_card_json = ?, persona_profile_json = ?, agent_id = ?,
                 llm_model_id = ?, llm_base_url = ?, has_llm_api_key = ?, updated_at = ?
             WHERE role_id = ?
             """,
             (
-                updated.app_user_id,
                 updated.title,
                 updated.persona_id,
                 updated.persona_text,
@@ -173,7 +164,7 @@ def get_role_optional(role_id: str) -> RoleState | None:
     with get_connection() as conn:
         row = conn.execute(
             """
-            SELECT role_id, profile_id, title, persona_id, persona_text, role_card_json, persona_profile_json,
+            SELECT role_id, title, persona_id, persona_text, role_card_json, persona_profile_json,
                    agent_id, llm_model_id, llm_base_url, has_llm_api_key, created_at, updated_at
             FROM roles
             WHERE role_id = ?
@@ -189,7 +180,7 @@ def list_roles() -> list[RoleState]:
     with get_connection() as conn:
         rows = conn.execute(
             """
-            SELECT role_id, profile_id, title, persona_id, persona_text, role_card_json, persona_profile_json,
+            SELECT role_id, title, persona_id, persona_text, role_card_json, persona_profile_json,
                    agent_id, llm_model_id, llm_base_url, has_llm_api_key, created_at, updated_at
             FROM roles
             ORDER BY updated_at DESC, created_at DESC
@@ -285,22 +276,6 @@ def get_role_llm_config(role_id: str, required: bool = True) -> LLMConfigResolve
     return default_llm_config()
 
 
-def get_app_user_id_for_role(role_id: str) -> str:
-    role = get_role(role_id)
-    return role.app_user_id or settings.default_app_user_id
-
-
-def _upsert_app_user(conn, app_user_id: str, now: datetime) -> None:
-    conn.execute(
-        """
-        INSERT INTO app_users (app_user_id, created_at, updated_at)
-        VALUES (?, ?, ?)
-        ON CONFLICT(app_user_id) DO UPDATE SET
-            updated_at = excluded.updated_at
-        """,
-        (app_user_id, now.isoformat(), now.isoformat()),
-    )
-
 
 def _resolve_persona_inputs(
     request: RoleCreateRequest,
@@ -338,15 +313,6 @@ def _resolve_agent_id(request: RoleCreateRequest, existing: RoleState | None) ->
     if existing is not None:
         return existing.agent_id
     return None
-
-
-def _resolve_app_user_id(request: RoleCreateRequest, existing: RoleState | None) -> str:
-    return (
-        request.app_user_id
-        or request.profile_id
-        or (existing.app_user_id if existing is not None else None)
-        or settings.default_app_user_id
-    )
 
 
 def _persona_memory_boundary_changed(existing: RoleState, updated: RoleState) -> bool:

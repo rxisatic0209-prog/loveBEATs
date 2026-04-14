@@ -8,9 +8,8 @@ logger = get_logger("LoveBeats.tools.heart_rate")
 def execute_get_heart_rate(role_id: str) -> HeartRateReading:
     reading = get_heart_rate_provider().get_latest(role_id)
     logger.info(
-        "heart-rate tool role_id=%s app_user_id=%s source=%s status=%s bpm=%s",
+        "heart-rate tool role_id=%s source=%s status=%s bpm=%s",
         role_id,
-        reading.app_user_id,
         reading.source,
         reading.status.value,
         reading.bpm,

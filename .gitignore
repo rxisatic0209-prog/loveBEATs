@@ -1,5 +1,11 @@
 __pycache__/
 .DS_Store
+.deriveddata/
+.venv/
+logs/
+pulseagent.db
+pulseagent.db-shm
+pulseagent.db-wal
 
 /backend/.venv/
 /backend/.env
