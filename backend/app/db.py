@@ -151,6 +151,40 @@ def _table_exists(conn: sqlite3.Connection, table_name: str) -> bool:
 
 
 def _migrate_legacy_storage(conn: sqlite3.Connection) -> None:
+    if _table_exists(conn, "roles"):
+        role_columns = {row[1] for row in conn.execute("PRAGMA table_info(roles)").fetchall()}
+        if "profile_id" in role_columns:
+            conn.executescript(
+                """
+                CREATE TABLE IF NOT EXISTS roles_v2 (
+                    role_id TEXT PRIMARY KEY,
+                    title TEXT,
+                    persona_id TEXT,
+                    persona_text TEXT NOT NULL,
+                    role_card_json TEXT,
+                    persona_profile_json TEXT,
+                    agent_id TEXT,
+                    llm_model_id TEXT,
+                    llm_base_url TEXT,
+                    has_llm_api_key INTEGER NOT NULL DEFAULT 0,
+                    created_at TEXT NOT NULL,
+                    updated_at TEXT NOT NULL
+                );
+
+                INSERT OR REPLACE INTO roles_v2 (
+                    role_id, title, persona_id, persona_text, role_card_json, persona_profile_json,
+                    agent_id, llm_model_id, llm_base_url, has_llm_api_key, created_at, updated_at
+                )
+                SELECT
+                    role_id, title, persona_id, persona_text, role_card_json, persona_profile_json,
+                    agent_id, llm_model_id, llm_base_url, has_llm_api_key, created_at, updated_at
+                FROM roles;
+
+                DROP TABLE roles;
+                ALTER TABLE roles_v2 RENAME TO roles;
+                """
+            )
+
     if _table_exists(conn, "sessions"):
         conn.executescript(
             """

@@ -6,18 +6,23 @@
   <title>LoveBeats Chat</title>
   <style>
     :root {
-      --bg: #f4efe6;
-      --panel: rgba(255, 251, 246, 0.9);
-      --panel-strong: rgba(255, 248, 240, 0.98);
-      --line: rgba(91, 58, 41, 0.12);
-      --text: #3d2a20;
-      --muted: #7a6254;
-      --accent: #c96f49;
-      --accent-deep: #a24a2c;
-      --user: #fae2d4;
-      --assistant: #fffaf5;
-      --danger: #a13030;
-      --shadow: 0 18px 45px rgba(88, 52, 37, 0.12);
+      --bg: #fff7fb;
+      --bg-soft: #fff1f7;
+      --panel: rgba(255, 250, 253, 0.9);
+      --panel-strong: rgba(255, 252, 254, 0.98);
+      --line: rgba(162, 103, 135, 0.14);
+      --line-strong: rgba(162, 103, 135, 0.2);
+      --text: #432b3a;
+      --muted: #8b6d7f;
+      --accent: #ec7cab;
+      --accent-strong: #d95d94;
+      --accent-soft: #ffe4ef;
+      --accent-faint: rgba(236, 124, 171, 0.12);
+      --user: linear-gradient(135deg, #ffdceb 0%, #ffcfe4 100%);
+      --assistant: rgba(255, 255, 255, 0.94);
+      --danger: #b24568;
+      --shadow: 0 24px 70px rgba(186, 112, 148, 0.14);
+      --shadow-soft: 0 14px 36px rgba(186, 112, 148, 0.1);
     }
 
     * {
@@ -27,85 +32,91 @@
     body {
       margin: 0;
       min-height: 100vh;
-      font-family: "PingFang SC", "Noto Serif SC", serif;
+      font-family: "PingFang SC", "Hiragino Sans GB", "Helvetica Neue", sans-serif;
       color: var(--text);
       background:
-        radial-gradient(circle at top left, rgba(223, 170, 131, 0.26), transparent 28%),
-        radial-gradient(circle at right 20%, rgba(203, 111, 73, 0.14), transparent 22%),
-        linear-gradient(160deg, #f8f2ea 0%, #efe2d4 100%);
+        radial-gradient(circle at top left, rgba(255, 205, 227, 0.88), transparent 28%),
+        radial-gradient(circle at top right, rgba(255, 223, 236, 0.78), transparent 24%),
+        radial-gradient(circle at bottom left, rgba(249, 185, 215, 0.34), transparent 26%),
+        linear-gradient(160deg, #fff9fc 0%, #fff0f6 52%, #fde8f1 100%);
     }
 
     .shell {
       display: grid;
-      grid-template-columns: 360px minmax(0, 1fr);
-      gap: 24px;
+      grid-template-columns: 350px minmax(0, 1fr);
+      gap: 20px;
       min-height: 100vh;
-      padding: 24px;
+      padding: 20px;
     }
 
     .panel {
       background: var(--panel);
-      border: 1px solid var(--line);
-      border-radius: 24px;
+      border: 1px solid rgba(255, 255, 255, 0.72);
+      border-radius: 28px;
       box-shadow: var(--shadow);
-      backdrop-filter: blur(12px);
+      backdrop-filter: blur(18px);
     }
 
     .sidebar {
       display: flex;
       flex-direction: column;
-      padding: 22px 20px;
-      gap: 18px;
+      padding: 24px 22px;
+      gap: 20px;
     }
 
     .brand {
       display: flex;
       flex-direction: column;
-      gap: 8px;
+      gap: 10px;
+      padding: 2px 2px 10px;
     }
 
     .eyebrow {
       font-size: 12px;
-      letter-spacing: 0.18em;
+      letter-spacing: 0.22em;
       text-transform: uppercase;
-      color: var(--accent-deep);
+      color: var(--accent-strong);
+      font-weight: 600;
     }
 
     h1 {
       margin: 0;
-      font-size: 28px;
-      line-height: 1;
+      font-size: 30px;
+      line-height: 1.05;
+      letter-spacing: -0.03em;
     }
 
     .subtle {
       color: var(--muted);
       font-size: 14px;
-      line-height: 1.5;
+      line-height: 1.7;
     }
 
     .stack {
       display: flex;
       flex-direction: column;
-      gap: 12px;
+      gap: 14px;
     }
 
     .section-title {
-      margin: 8px 0 2px;
+      margin: 10px 0 2px;
       font-size: 12px;
-      letter-spacing: 0.12em;
+      letter-spacing: 0.18em;
       text-transform: uppercase;
-      color: var(--accent-deep);
+      color: var(--accent-strong);
+      font-weight: 600;
     }
 
     .field {
       display: flex;
       flex-direction: column;
-      gap: 6px;
+      gap: 8px;
     }
 
     label {
       font-size: 13px;
       color: var(--muted);
+      padding-left: 2px;
     }
 
     input,
@@ -119,25 +130,27 @@
     select,
     textarea {
       width: 100%;
-      padding: 12px 14px;
-      border-radius: 14px;
-      border: 1px solid rgba(91, 58, 41, 0.14);
-      background: rgba(255, 255, 255, 0.75);
+      padding: 13px 15px;
+      border-radius: 16px;
+      border: 1px solid rgba(214, 152, 181, 0.2);
+      background: rgba(255, 255, 255, 0.84);
       color: var(--text);
       outline: none;
-      transition: border-color 120ms ease, box-shadow 120ms ease, transform 120ms ease;
+      box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.8);
+      transition: border-color 140ms ease, box-shadow 140ms ease, background 140ms ease;
     }
 
     input:focus,
     select:focus,
     textarea:focus {
-      border-color: rgba(201, 111, 73, 0.85);
-      box-shadow: 0 0 0 4px rgba(201, 111, 73, 0.12);
+      border-color: rgba(236, 124, 171, 0.65);
+      background: rgba(255, 255, 255, 0.96);
+      box-shadow: 0 0 0 4px rgba(236, 124, 171, 0.12);
     }
 
     textarea {
       resize: vertical;
-      min-height: 92px;
+      min-height: 96px;
     }
 
     .row {
@@ -155,9 +168,10 @@
     button {
       border: 0;
       border-radius: 999px;
-      padding: 12px 16px;
+      padding: 12px 18px;
       cursor: pointer;
-      transition: transform 120ms ease, opacity 120ms ease, box-shadow 120ms ease;
+      transition: transform 140ms ease, opacity 140ms ease, box-shadow 140ms ease, background 140ms ease;
+      font-weight: 600;
     }
 
     button:hover {
@@ -171,15 +185,16 @@
     }
 
     .primary {
-      background: linear-gradient(135deg, var(--accent) 0%, var(--accent-deep) 100%);
+      background: linear-gradient(135deg, var(--accent) 0%, var(--accent-strong) 100%);
       color: white;
-      box-shadow: 0 10px 25px rgba(162, 74, 44, 0.28);
+      box-shadow: 0 14px 28px rgba(217, 93, 148, 0.28);
     }
 
     .secondary {
-      background: rgba(255, 255, 255, 0.7);
+      background: rgba(255, 255, 255, 0.78);
       color: var(--text);
-      border: 1px solid rgba(91, 58, 41, 0.1);
+      border: 1px solid rgba(214, 152, 181, 0.16);
+      box-shadow: var(--shadow-soft);
     }
 
     .chat {
@@ -191,7 +206,7 @@
     }
 
     .chat-header {
-      padding: 22px 24px 14px;
+      padding: 26px 28px 18px;
       border-bottom: 1px solid var(--line);
       display: flex;
       justify-content: space-between;
@@ -202,7 +217,7 @@
     .chat-title {
       display: flex;
       flex-direction: column;
-      gap: 8px;
+      gap: 10px;
     }
 
     .pill-row {
@@ -215,11 +230,12 @@
       display: inline-flex;
       align-items: center;
       gap: 6px;
-      padding: 7px 10px;
+      padding: 8px 12px;
       border-radius: 999px;
-      background: rgba(201, 111, 73, 0.1);
-      color: var(--accent-deep);
+      background: var(--accent-faint);
+      color: var(--accent-strong);
       font-size: 12px;
+      border: 1px solid rgba(236, 124, 171, 0.12);
     }
 
     .header-actions {
@@ -230,54 +246,62 @@
     }
 
     .messages {
-      padding: 22px 24px;
+      padding: 28px;
       overflow: auto;
       display: flex;
       flex-direction: column;
-      gap: 14px;
+      gap: 16px;
       scroll-behavior: smooth;
+      background:
+        linear-gradient(180deg, rgba(255, 250, 253, 0.22) 0%, rgba(255, 245, 250, 0.04) 100%);
     }
 
     .empty {
       margin: auto;
-      max-width: 420px;
+      max-width: 460px;
       text-align: center;
       color: var(--muted);
       line-height: 1.7;
+      padding: 28px;
+      border-radius: 24px;
+      background: rgba(255, 255, 255, 0.54);
+      border: 1px dashed rgba(217, 93, 148, 0.18);
     }
 
     .message {
       max-width: min(76%, 720px);
-      padding: 14px 16px;
-      border-radius: 20px;
+      padding: 15px 17px;
+      border-radius: 22px;
       line-height: 1.7;
       white-space: pre-wrap;
       animation: rise 180ms ease;
+      box-shadow: var(--shadow-soft);
     }
 
     .message.user {
       align-self: flex-end;
       background: var(--user);
-      border-bottom-right-radius: 6px;
+      color: #4a2738;
+      border-bottom-right-radius: 8px;
     }
 
     .message.assistant {
       align-self: flex-start;
       background: var(--assistant);
-      border: 1px solid rgba(91, 58, 41, 0.08);
-      border-bottom-left-radius: 6px;
+      border: 1px solid rgba(214, 152, 181, 0.14);
+      border-bottom-left-radius: 8px;
     }
 
     .meta {
-      margin-top: 8px;
+      margin-top: 9px;
       font-size: 12px;
       color: var(--muted);
     }
 
     .composer {
-      padding: 16px 18px 18px;
+      padding: 18px 20px 20px;
       border-top: 1px solid var(--line);
-      background: rgba(255, 250, 245, 0.92);
+      background: rgba(255, 248, 252, 0.94);
       display: flex;
       flex-direction: column;
       gap: 12px;
@@ -291,7 +315,7 @@
     }
 
     #messageInput {
-      min-height: 74px;
+      min-height: 80px;
     }
 
     .status {
@@ -307,7 +331,8 @@
     .hint {
       font-size: 12px;
       color: var(--muted);
-      line-height: 1.6;
+      line-height: 1.7;
+      padding-left: 2px;
     }
 
     .role-actions {
@@ -326,18 +351,18 @@
 
     .log-panel {
       position: fixed;
-      right: 24px;
-      bottom: 24px;
+      right: 20px;
+      bottom: 20px;
       width: min(760px, calc(100vw - 48px));
       height: min(420px, calc(100vh - 96px));
       z-index: 40;
       display: none;
       flex-direction: column;
-      background: rgba(34, 26, 23, 0.96);
-      color: #f6ece3;
+      background: rgba(65, 39, 54, 0.96);
+      color: #fff4f8;
       border-radius: 24px;
       border: 1px solid rgba(255, 255, 255, 0.08);
-      box-shadow: 0 24px 60px rgba(30, 18, 14, 0.35);
+      box-shadow: 0 24px 60px rgba(76, 39, 58, 0.32);
       overflow: hidden;
     }
 
@@ -364,12 +389,12 @@
 
     .log-title strong {
       font-size: 16px;
-      color: #fff6ef;
+      color: #fff7fb;
     }
 
     .log-path {
       font-size: 12px;
-      color: rgba(246, 236, 227, 0.7);
+      color: rgba(255, 239, 246, 0.7);
       word-break: break-all;
     }
 
@@ -384,7 +409,7 @@
       padding: 9px 14px;
       border-radius: 999px;
       background: rgba(255, 255, 255, 0.08);
-      color: #fff6ef;
+      color: #fff7fb;
       border: 1px solid rgba(255, 255, 255, 0.08);
     }
 
@@ -401,7 +426,7 @@
     }
 
     .log-empty {
-      color: rgba(246, 236, 227, 0.72);
+      color: rgba(255, 239, 246, 0.72);
     }
 
     @keyframes rise {
@@ -418,10 +443,47 @@
     @media (max-width: 980px) {
       .shell {
         grid-template-columns: 1fr;
+        padding: 14px;
+        gap: 14px;
       }
 
       .chat {
         min-height: 72vh;
+      }
+
+      .chat-header,
+      .messages,
+      .composer {
+        padding-left: 18px;
+        padding-right: 18px;
+      }
+    }
+
+    @media (max-width: 640px) {
+      .sidebar {
+        padding: 18px 16px;
+      }
+
+      h1 {
+        font-size: 26px;
+      }
+
+      .message {
+        max-width: 90%;
+      }
+
+      .role-actions,
+      .row {
+        grid-template-columns: 1fr;
+      }
+
+      .composer-row {
+        grid-template-columns: 1fr;
+      }
+
+      .header-actions {
+        width: 100%;
+        justify-content: flex-start;
       }
     }
   </style>
@@ -431,12 +493,11 @@
     <aside class="panel sidebar">
       <div class="brand">
         <div class="eyebrow">LoveBeats</div>
-        <h1>Chat Studio</h1>
-        <div class="subtle">Web 端专注做人设输入和聊天交互。心率读取由后端 Provider（当前可接 Pulsoid）统一处理。</div>
+        <h1>Love is all you need</h1>
       </div>
 
       <div class="stack">
-        <div class="section-title">我的角色</div>
+        <div class="section-title">角色管理</div>
         <div class="field">
           <label for="roleSelect">已创建角色</label>
           <select id="roleSelect">
@@ -450,7 +511,7 @@
           <button class="secondary" id="deleteRoleButton">删除</button>
         </div>
 
-        <div class="section-title">角色设定</div>
+        <div class="section-title">角色卡</div>
         <div class="field">
           <label for="personaSelect">已保存 Persona</label>
           <select id="personaSelect">
@@ -469,7 +530,7 @@
         </div>
 
         <div class="field">
-          <label for="backgroundInput">背景设定（关系 + 故事背景）</label>
+          <label for="backgroundInput">背景设定</label>
           <textarea id="backgroundInput" placeholder="比如：你是用户的年上恋人，关系自然稳定，已经相处很久。"></textarea>
         </div>
 
@@ -479,7 +540,7 @@
         </div>
 
         <div class="field">
-          <label for="attachmentInput">关系模式 / 依恋风格</label>
+          <label for="attachmentInput">关系模式</label>
           <input id="attachmentInput" placeholder="比如：安全型，亲近但不黏腻，关系里有稳定回应">
         </div>
 
@@ -499,10 +560,10 @@
         </div>
 
         <div class="hint">
-          如果后端没接真实模型，聊天会显示 <code>mock-local</code>，那只是链路通，不是真对话质量。
+          如果后端没有接入真实模型，页面会显示 <code>mock-local</code>。这只表示链路正常，不代表真实对话质量。
         </div>
 
-        <div class="section-title">开发工具</div>
+        <div class="section-title">运行状态</div>
         <div class="hint" id="backendHealthHint">
           后端状态：检测中…
         </div>
@@ -518,7 +579,7 @@
       <div class="chat-header">
         <div class="chat-title">
           <div class="eyebrow">Conversation</div>
-          <h1 id="chatHeading">还没开始聊天</h1>
+          <h1 id="chatHeading">还没有开始聊天</h1>
           <div class="pill-row">
             <span class="pill" id="personaPill">Persona: 未选择</span>
             <span class="pill" id="modelPill">Model: 未发送</span>
@@ -532,15 +593,15 @@
 
       <div class="messages" id="messages">
         <div class="empty" id="emptyState">
-          先创建一个角色卡，然后从这里开始聊天。<br>
-          如果你已经配置过心率 provider（例如 Pulsoid），同一个角色卡里的聊天就可以按需取到它。
+          先在左侧保存一个角色卡。<br>
+          进入对话后，模型会结合当前角色设定、最近消息和运行时工具状态生成回复。
         </div>
       </div>
 
       <div class="composer">
-        <div class="status" id="statusText">准备中…</div>
+        <div class="status" id="statusText">正在准备页面…</div>
         <div class="composer-row">
-          <textarea id="messageInput" placeholder="发一条消息试试，比如：今天有点累，想找个人说说话。"></textarea>
+          <textarea id="messageInput" placeholder="输入一条消息。按 Enter 发送，Shift + Enter 换行。"></textarea>
           <button class="primary" id="sendButton">发送</button>
         </div>
       </div>
