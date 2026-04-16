@@ -31,9 +31,9 @@ class PersonaProfile(BaseModel):
     user_nickname: str | None = Field(default=None, max_length=32)
     tone_hint: str | None = Field(default=None, max_length=320)
     initiative_hint: str | None = Field(default=None, max_length=120)
-    affection_style: str | None = Field(default=None, max_length=300)
+    affection_style: str | None = Field(default=None, max_length=2000)
     expression_level: str | None = Field(default=None, max_length=120)
-    comfort_hint: str | None = Field(default=None, max_length=200)
+    comfort_hint: str | None = Field(default=None, max_length=2000)
     taboo_list: list[str] = Field(default_factory=list, max_length=8)
     lexicon_list: list[str] = Field(default_factory=list, max_length=8)
 
@@ -78,8 +78,8 @@ class RoleCardInput(BaseModel):
     """
     name: str = Field(min_length=1, max_length=64)
     background: str | None = Field(default=None, max_length=1000)
-    trait_profile: str | None = Field(default=None, max_length=300)
-    attachment_style: str | None = Field(default=None, max_length=200)
+    trait_profile: str | None = Field(default=None, max_length=2000)
+    attachment_style: str | None = Field(default=None, max_length=2000)
     major_life_events: str | None = Field(default=None, max_length=500)
     response_style: str | None = Field(default=None, max_length=320)
     user_nickname: str | None = Field(default=None, max_length=32)
